@@ -13,6 +13,41 @@ from pathlib import Path
 import yaml
 
 
+def hex_to_rgb(s: str) -> tuple[int, int, int]:
+    s = s.lstrip("#")
+    if len(s) != 6:
+        raise ValueError(f"Bad hex color: {s!r}")
+    return (int(s[0:2], 16), int(s[2:4], 16), int(s[4:6], 16))
+
+
+def is_monochrome_on_transparent(img) -> bool:
+    """All non-transparent pixels share the same RGB → safe to recolor.
+
+    `img` is a PIL Image. PIL is imported lazily to keep _lib import-cheap.
+    """
+    rgba = img.convert("RGBA")
+    pixels = list(rgba.getdata())
+    seen_rgb = set()
+    for r, g, b, a in pixels:
+        if a < 8:
+            continue
+        seen_rgb.add((r, g, b))
+        if len(seen_rgb) > 1:
+            return False
+    return len(seen_rgb) <= 1
+
+
+def load_logo(logo_path: Path, fill_rgb: tuple[int, int, int]):
+    """Load logo; recolor to `fill_rgb` if monochrome-on-transparent."""
+    from PIL import Image  # lazy import — PIL not always required
+    src = Image.open(logo_path).convert("RGBA")
+    if is_monochrome_on_transparent(src):
+        recolored = Image.new("RGBA", src.size, (*fill_rgb, 0))
+        recolored.putalpha(src.getchannel("A"))
+        return recolored
+    return src
+
+
 def load_yaml(path: Path) -> dict:
     if not path.exists():
         sys.exit(f"Missing config file: {path}")
