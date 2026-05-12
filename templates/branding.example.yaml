@@ -1,0 +1,51 @@
+# branding.yaml — per-brand config. Reusable across multiple demos.
+
+brand:
+  name: "Acme Cloud"
+  # Optional fields used on Phase B intro/outro slides:
+  tagline: "Serverless deploys for small teams"
+  cta:
+    text: "Try it free"
+    url: "https://acmecloud.example.com"
+  social:
+    twitter: "@acmecloud"
+
+logo:
+  path: "./logo.png"             # local path relative to the working dir
+  source_url: ""                 # optional, for re-download
+
+# All four colors required for a dark badge with a light logo. Swap ink/cream
+# for a light badge with a dark logo — the renderer doesn't care which is which.
+colors:
+  ink: "#101828"                 # gradient outer (badge base)
+  ink_deep: "#0c1322"            # gradient inner (slightly darker)
+  accent: "#bae424"              # ring border, waveform, pulse rings
+  cream: "#fbf7f3"               # logo recolor (for monochrome logos)
+
+voice:
+  provider: openai
+  model: "gpt-4o-mini-tts"
+  voice: cedar                   # cedar (calm) | marin (brighter)
+  tone: "explanatory"            # explanatory | sales | technical | casual
+  instructions: |
+    Read calmly and clearly, like a confident product walkthrough narrator.
+    Pace around 140 words per minute. Treat hyphenated initialisms like
+    A-P-I and K-Y-B as letter-by-letter readings. Leave natural breaths
+    between sentences.
+
+# Optional layout overrides (defaults shown):
+# overlay:
+#   badge:
+#     size: 120                  # visible diameter in px
+#     left_margin: 30            # from left edge
+#     bottom_margin: 36          # from bottom edge (to waveform)
+#   waveform:
+#     width: 200
+#     height: 36
+#     gap: 6                     # between badge bottom and waveform top
+#     mode: p2p                  # p2p | cline | line
+#     scale: sqrt                # lin | log | sqrt (sqrt is most visible at low amplitudes)
+
+# CSS injected at recording time only. Used for sticky-header recipes and other
+# site adaptations. Leave empty if no adaptation needed.
+recording_css: ""

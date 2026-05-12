@@ -1,0 +1,27 @@
+# Per-demo config for the Halyard Pay reference example.
+
+site:
+  base_url: "http://localhost:8080"
+
+session:
+  pre_session: []   # no auth needed for the static dist site
+
+output:
+  filename: "halyard-demo.mp4"
+  working_dir: "~/demo-videos/halyard-spme-test"
+  speed_multiplier: 1.2
+  target_duration_seconds: 300
+
+features:
+  intro_slide: false       # Phase B
+  outro_slide: false       # Phase B
+  captions:
+    enabled: false         # Phase B
+    mode: "burned"
+  brand_overlay: true
+
+recording:
+  viewport: { width: 1440, height: 900 }
+  framerate: 25
+  pre_narration_ms: 400
+  post_narration_ms: 700

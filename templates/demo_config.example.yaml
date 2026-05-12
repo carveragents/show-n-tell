@@ -1,0 +1,38 @@
+# demo_config.yaml — per-demo config: target site, output, login if any.
+
+site:
+  base_url: "http://localhost:8080"
+  # OR for live: "https://app.example.com"
+
+session:
+  # Phase B: auth steps to run once before recording. Same action grammar as
+  # storyboard beats. Env vars in `${NAME}` form are resolved from the shell
+  # or from `<working_dir>/.env`.
+  pre_session: []
+  # Example:
+  # pre_session:
+  #   - { type: goto, url: "{{ base_url }}/login" }
+  #   - { type: fill, selector: "input[name=email]",    value: "${DEMO_EMAIL}" }
+  #   - { type: fill, selector: "input[name=password]", value: "${DEMO_PASSWORD}" }
+  #   - { type: click, selector: "button[type=submit]" }
+  #   - { type: wait_for_url, contains: "/dashboard" }
+
+output:
+  filename: "demo.mp4"
+  working_dir: "~/demo-videos/example-demo"
+  speed_multiplier: 1.2          # 1.0 = no speed adjustment
+  target_duration_seconds: 300   # 5 min target — informational; warn if storyboard runtime is way off
+
+features:
+  intro_slide: false             # Phase B
+  outro_slide: false             # Phase B
+  captions:
+    enabled: false               # Phase B
+    mode: "burned"               # burned | srt-sidecar
+  brand_overlay: true            # badge + waveform
+
+recording:
+  viewport: { width: 1440, height: 900 }
+  framerate: 25
+  pre_narration_ms: 400
+  post_narration_ms: 700

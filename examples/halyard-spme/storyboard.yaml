@@ -1,0 +1,229 @@
+# Halyard Pay / Mastercard SPME demo storyboard — 28 beats.
+# This is the canonical reference example for the demo-video-from-site skill.
+# Reproduces ~/work/scribble/code/repos/carver/policy-diffs/credio-policies/dist/demo-video.mp4.
+
+beats:
+  # ── Segment 1: Overview ────────────────────────────────────────────────
+  - id: 01_overview_hero
+    action: { type: goto, url: "{{ base_url }}/index.html" }
+    narration: >-
+      In this demo, a custom-built AI agent reviews how Mastercard's Security
+      Rules and Procedures publication — abbreviated S-P-M-E — evolved across
+      five releases between 2022 and 2025, and auto-applies the corresponding
+      updates to Halyard Pay's internal compliance policies.
+
+  - id: 02_overview_pipeline
+    action: { type: scroll_into_view, selector: ".overview-section:nth-of-type(1)" }
+    narration: >-
+      The agent runs in three stages. It detects every section that changed
+      between consecutive releases, classifies the severity of each change,
+      and proposes corresponding updates to the policies of Halyard Pay — a
+      hypothetical payment processor used here to demonstrate the workflow.
+
+  - id: 03_overview_inputs
+    action: { type: scroll_into_view, selector: ".overview-section:nth-of-type(2)" }
+    narration: >-
+      The source documents are public Mastercard publications, archived via
+      the Internet Archive. They are bundled with this demo so reviewers can
+      verify every proposal directly against the original P-D-F.
+
+  - id: 04_overview_outputs
+    action: { type: scroll_into_view, selector: ".overview-section:nth-of-type(3)" }
+    narration: >-
+      These eight policy areas are synthetic baselines — they do not reflect
+      any real production text — and exist solely to demonstrate how the
+      agent surfaces and proposes edits.
+
+  - id: 05_overview_glossary
+    action: { type: scroll_into_view, selector: ".overview-section:nth-of-type(4)" }
+    narration: >-
+      Every detected change is graded by materiality — breaking, substantive,
+      clarifying, or cosmetic — depending on whether it alters a real
+      compliance obligation.
+
+  # ── Segment 2: Timeline ────────────────────────────────────────────────
+  - id: 06_timeline_top
+    action: { type: goto, url: "{{ base_url }}/timeline/index.html" }
+    narration: >-
+      The timeline view shows all five Mastercard S-P-M-E release transitions
+      in chronological order.
+
+  - id: 07_timeline_rows
+    action: { type: scroll_into_view, selector: ".timeline-card:nth-of-type(3)" }
+    narration: >-
+      Each row shows the date range, the number of proposed revisions in that
+      release, and a colored severity bar showing the materiality breakdown
+      of the changes in that release.
+
+  - id: 08_timeline_hover
+    action: { type: hover, selector: ".timeline-card .severity-bar" }
+    narration: >-
+      Hovering a release card reveals the per-release breakdown. In the first
+      transition alone, the agent identified 4 breaking changes and 44
+      substantive ones across 7 affected policies — similar volumes appear
+      in every transition.
+
+  # ── Segment 3: Transition + PDF + change tabs ──────────────────────────
+  - id: 09_transition_top
+    action: { type: goto, url: "{{ base_url }}/transitions/2024-09_to_2025-05.html" }
+    narration: >-
+      Drilling into one release — September 2024 to May 2025 — every detected
+      change appears as a card, grouped by materiality, with breaking changes
+      listed first.
+
+  - id: 10_transition_search
+    action: { type: hover, selector: "#q" }
+    narration: >-
+      A search box and filter pills let reviewers narrow the list by section
+      number, by policy, or by severity grade.
+
+  - id: 11_transition_cards
+    action: { type: scroll_into_view, selector: ".change-card" }
+    narration: >-
+      Each card cites the specific S-P-M-E section number and lists the
+      Halyard Pay policies that section touches.
+
+  - id: 12_change_header
+    action: { type: goto, url: "{{ base_url }}/changes/2024-09_to_2025-05_6.2.2.html" }
+    narration: >-
+      Clicking a card opens the change-detail page. The sources row at the
+      top links directly to both Mastercard P-D-F-s — and crucially, each
+      link includes a page-number anchor.
+
+  - id: 13_change_pdf
+    action: { type: goto, url: "{{ base_url }}/_recording_assets/pdf_view_2024-09_p60.html" }
+    narration: >-
+      Click the link and the original Mastercard document opens at the exact
+      page where the cited section appears. No hunting through two hundred
+      pages of source material.
+
+  - id: 14_change_back_sbs
+    action:
+      type: goto_and_scroll
+      url: "{{ base_url }}/changes/2024-09_to_2025-05_6.2.2.html"
+      selector: "#side-by-side .file-panel"
+    narration: >-
+      Back on the change page, the Side-by-side tab shows the original S-P-M-E
+      section on the left with word-level redlines, and the proposed Halyard
+      Pay policy edits on the right.
+
+  - id: 15_change_raw_diff
+    action:
+      type: click
+      selector: ".tabs a[href='#raw-diff']"
+      then_scroll: "#raw-diff pre"
+    narration: >-
+      The Raw diff tab provides the underlying unified diff — what an engineer
+      would see in a pull request.
+
+  - id: 16_change_back_to_sbs
+    action:
+      type: click
+      selector: ".tabs a[href='#redline']"
+      then_scroll: "#redline"
+    narration: >-
+      And the Redline tab renders the proposed policy as a track-changes
+      document — useful for compliance review.
+
+  # ── Segment 4a: §7.2 Ongoing Monitoring ────────────────────────────────
+  - id: 17_s72_header
+    action: { type: goto, url: "{{ base_url }}/changes/2023-05_to_2023-09_7.2.html" }
+    narration: >-
+      Here is a verified example. Section 7.2, Ongoing Monitoring, from the
+      May to September 2023 release.
+
+  - id: 18_s72_callout
+    action: { type: scroll_into_view, selector: ".callout" }
+    narration: >-
+      The 'Why these edits?' callout explains the change in plain English:
+      Mastercard added a new obligation requiring acquirers to regularly
+      review their merchants' websites and verify business activities.
+
+  - id: 19_s72_sbs
+    action: { type: scroll_into_view, selector: "#side-by-side .file-panel" }
+    narration: >-
+      The Side-by-side compare shows the new S-P-M-E text on the left, and
+      the proposed edits to the Halyard Pay Fraud Monitoring policy on the
+      right.
+
+  - id: 20_s72_redline
+    action:
+      type: click
+      selector: ".tabs a[href='#redline']"
+      then_scroll: "#redline"
+    narration: >-
+      The Redline tab renders the proposed policy as a track-changes
+      document — what the final approved policy will read like once the
+      change is accepted.
+
+  # ── Segment 4b: §2.2.3 Service Provider Compliance ─────────────────────
+  - id: 21_s223_header
+    action: { type: goto, url: "{{ base_url }}/changes/2024-02_to_2024-09_2.2.3.html" }
+    narration: >-
+      A second verified example. Section 2.2.3, Service Provider Compliance
+      Requirements, between February and September 2024.
+
+  - id: 22_s223_yaml_diff
+    action:
+      type: scroll_into_view
+      selector: "#side-by-side .file-panel .yaml-diff, #side-by-side pre"
+    narration: >-
+      On the left, the redline highlights where Mastercard shifted from
+      annual to biennial 3-D-S Service Provider validation. On the right, the
+      proposed K-Y-B Acquirer rules-dot-yaml adds section 2.2.3 to its
+      authority list, with annotations below capturing the new cadence and
+      the Service Provider reclassification.
+
+  - id: 23_s223_chip
+    action: { type: hover, selector: ".file-panel a.chip" }
+    narration: >-
+      Every affected policy file in this view is a live link.
+
+  - id: 24_s223_policy_page
+    action:
+      type: goto_and_scroll
+      url: "{{ base_url }}/policies/kyb_acquirer.html"
+      selector: ".change-card-mini"
+    narration: >-
+      Clicking through opens the K-Y-B Acquirer policy page. Below the
+      current policy text, every proposed change touching this policy appears
+      in a release-by-release mini-timeline — useful for spotting any policy
+      that is being repeatedly revised.
+
+  # ── Segment 5: Low-confidence change with extraction warning ──────────
+  - id: 25_s865_warning
+    action:
+      type: goto_and_scroll
+      url: "{{ base_url }}/changes/2022-06_to_2023-05_8.6.5.html"
+      selector: ".extraction-warning"
+    narration: >-
+      The agent doesn't just generate proposals — it also flags low-confidence
+      ones for further human review. Section 8.6.5, Chargeback Responsibility,
+      is an example. The yellow warning at the top indicates that the source
+      P-D-F appears to have a section-boundary issue.
+
+  - id: 26_s865_explanation
+    action: { type: hover, selector: ".extraction-warning a" }
+    narration: >-
+      A page running-header confused the section detector, and body text from
+      a neighbouring section was attributed to this one — exactly the kind
+      of issue that benefits from being flagged for human verification.
+
+  - id: 27_s865_sbs
+    action: { type: scroll_into_view, selector: "#side-by-side .file-panel" }
+    narration: >-
+      Reviewers see the doubt before they read the AI's claim, and can verify
+      against the source P-D-F in one click.
+
+  # ── Closing ────────────────────────────────────────────────────────────
+  - id: 28_closing
+    action:
+      type: goto_and_scroll
+      url: "{{ base_url }}/index.html"
+      selector: ".stats"
+    narration: >-
+      Five Mastercard S-P-M-E releases reviewed. 214 proposed revisions. 15
+      breaking changes. Eight policy areas affected. This is what an AI
+      compliance agent looks like when it is transparent about what it knows,
+      what it proposes, and what it might have gotten wrong. Built by Carver
+      Agents.

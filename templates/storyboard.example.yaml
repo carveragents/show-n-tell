@@ -1,0 +1,33 @@
+# storyboard.yaml — beat sequence Claude drafts and the user approves.
+#
+# Each beat = one camera action + 1–3 sentences of narration.
+# Total runtime per beat:
+#   action_ms (measured at record time) + pre_narration_ms + tts_ms + post_narration_ms
+#
+# Narration rules (enforce when drafting):
+#   - Every factual claim must be visible on screen at this beat's frame.
+#   - Write initialisms hyphenated for letter-by-letter reading: A-P-I, K-Y-B.
+#   - 8–18 seconds of narration for scroll beats; 6–12 seconds for click beats.
+#
+# Action grammar — see docs/SCHEMAS.md for the full reference.
+
+beats:
+  - id: 01_hero
+    action: { type: goto, url: "{{ base_url }}/" }
+    narration: >-
+      Welcome to Acme Cloud — a serverless deployment platform built for
+      small teams who want zero-config production deploys.
+
+  - id: 02_features
+    action: { type: scroll_into_view, selector: ".features-grid" }
+    narration: >-
+      Three core capabilities power the platform: zero-config deploys,
+      automatic S-S-L provisioning, and real-time logs piped directly to
+      your terminal.
+
+  - id: 03_dashboard
+    action: { type: goto, url: "{{ base_url }}/dashboard" }
+    narration: >-
+      Clicking into the dashboard, every project shows a live activity
+      feed — deploys, function invocations, and error rates updating in
+      real time.

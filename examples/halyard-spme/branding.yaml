@@ -1,0 +1,50 @@
+# Carver Agents brand config for the Halyard Pay demo.
+
+brand:
+  name: "Carver Agents"
+
+logo:
+  path: "./_assets/carver_wordmark.png"
+  # Source: https://carveragents.ai (downloaded once, recolored to cream by make_overlay.py)
+
+colors:
+  ink: "#101828"          # badge base
+  ink_deep: "#0c1322"     # inner gradient stop
+  accent: "#bae424"       # ring border, waveform, pulse rings (lime)
+  cream: "#fbf7f3"        # logo recolor
+
+voice:
+  provider: openai
+  model: "gpt-4o-mini-tts"
+  voice: cedar            # cedar = calm/authoritative; marin = brighter
+  tone: "explanatory"
+  instructions: |
+    Read calmly and clearly, like a confident product walkthrough narrator.
+    Pace around 140 words per minute. Treat hyphenated initialisms like
+    S-P-M-E and K-Y-B as letter-by-letter readings. Do not sound rushed;
+    leave small natural breaths between sentences.
+
+# CSS injected at recording time only — keeps the change-page header pinned
+# while we scroll into long diff content. Production users do not see this.
+recording_css: |
+  .change-header {
+    position: sticky;
+    top: 0;
+    background: var(--surface, #fff);
+    z-index: 40;
+    padding-top: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border, #e5e7eb);
+  }
+  section.tab-panel,
+  section.tab-panel .file-panel,
+  section.tab-panel .col,
+  section.tab-panel .prose,
+  section.tab-panel pre,
+  .extraction-warning,
+  .callout {
+    scroll-margin-top: 130px;
+  }
+  .overview-section {
+    scroll-margin-top: 24px;
+  }
