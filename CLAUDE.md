@@ -75,6 +75,19 @@ These come from the user's stated requirements — `docs/DESIGN-DECISIONS.md` is
 
 The Halyard / Mastercard-SPME demo at `~/work/scribble/code/repos/carver/policy-diffs/credio-policies/dist/demo-video.mp4` is the gold standard. Phase A is "done" when the skill can reproduce a qualitatively-equivalent video given only the `examples/halyard-spme/` inputs (storyboard + branding + demo_config YAMLs) and the dist site served at `localhost:8080`.
 
+## Workflow
+
+Use the superpowers skills throughout this work — they are not optional or judgment-call:
+
+- **superpowers:executing-plans** or **superpowers:subagent-driven-development** when working from a written plan (e.g., `docs/PHASE-A-TASKS.md`, `docs/PHASE-B-TASKS.md`). Default to subagent-driven-development for new code; executing-plans is fine for extraction/glue.
+- **superpowers:test-driven-development** for any new implementation work — write tests first.
+- **superpowers:brainstorming** before creative work that isn't already covered by an approved plan.
+- **superpowers:systematic-debugging** when something breaks.
+- **superpowers:verification-before-completion** before claiming any task done — fresh evidence, not assumptions.
+- **superpowers:finishing-a-development-branch** at the end of a chunk of work.
+
+The user has stated this as a durable preference: "always use superpowers." Don't make a cost/benefit judgment call to skip them — they're the default workflow.
+
 ## Tooling
 
 - Python with `uv` for script execution
