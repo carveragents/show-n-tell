@@ -25,6 +25,7 @@ The wrapper HTML can be opened via `file:///<absolute-path>` from Playwright.
 # ///
 import argparse
 import sys
+import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -45,7 +46,16 @@ def fetch_pdf(source: str, dest: Path) -> None:
         if dest.exists():
             return
         print(f"  fetching {source}")
-        urllib.request.urlretrieve(source, dest)
+        # Timed urlopen + atomic rename: no half-written files left behind on
+        # failure (a partial dest would fool the .exists() check above next run).
+        tmp = dest.with_suffix(dest.suffix + ".part")
+        try:
+            with urllib.request.urlopen(source, timeout=30) as r:
+                tmp.write_bytes(r.read())
+            tmp.rename(dest)
+        except (urllib.error.URLError, TimeoutError) as e:
+            tmp.unlink(missing_ok=True)
+            sys.exit(f"Failed to fetch PDF {source!r}: {e}")
     else:
         src = Path(source).expanduser().resolve()
         if not src.exists():

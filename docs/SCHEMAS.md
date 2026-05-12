@@ -259,17 +259,6 @@ action:
 
 The recorder resolves the wrapper file at `<working_dir>/_assets/pdf_wrappers/<pdf_id>_p<page>.html` and navigates to it via `file://`. The wrapper shows a dark-toolbar PDF-viewer-style chrome with the requested page rendered as a PNG at 2x DPI (~144 dpi), max 900px wide.
 
-### `fill` (Phase B — for login flows + form demos)
-
-Type text into an input.
-
-```yaml
-action:
-  type: fill
-  selector: "input[name=email]"
-  value: "demo@example.com"    # or "${ENV_VAR}"
-```
-
 ### `wait_for_url`
 
 Wait until URL matches a pattern. Used after clicks that trigger navigation.

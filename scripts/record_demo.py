@@ -47,7 +47,7 @@ PDF_WRAPPER_HELPER = SKILL_ROOT / "helpers" / "pdf_wrapper.py"
 SUPPORTED_ACTIONS = {
     "goto", "goto_and_scroll", "scroll_into_view", "scroll_y",
     "hover", "click", "wait_for_selector", "wait_for_url",
-    "goto_pdf", "fill",
+    "goto_pdf",
 }
 
 
@@ -222,7 +222,7 @@ def main():
                 "--page", str(page_num),
             ]
             if entry.get("citation"):
-                cmd += ["--citation", entry["citation"]]
+                cmd += ["--citation", interp_template(entry["citation"], ctx)]
             subprocess.run(cmd, check=True)
         print()
 
