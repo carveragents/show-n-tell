@@ -1,0 +1,11 @@
+# Canonical login pre-session shape.
+# Drop this under `session.pre_session:` in demo_config.yaml.
+# `${ENV_VAR}` references resolve from the shell environment and from
+# `<working_dir>/.env` (auto-loaded by record_demo.py).
+session:
+  pre_session:
+    - { type: goto, url: "{{ base_url }}/login" }
+    - { type: fill, selector: "input[name=email]",    value: "${DEMO_EMAIL}" }
+    - { type: fill, selector: "input[name=password]", value: "${DEMO_PASSWORD}" }
+    - { type: click, selector: "button[type=submit]" }
+    - { type: wait_for_url, contains: "/dashboard" }

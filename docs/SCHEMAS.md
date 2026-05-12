@@ -247,6 +247,27 @@ action:
   then_scroll: "#redline"      # optional
 ```
 
+### `fill` (Phase B — primarily for login pre-sessions)
+
+Type a value into a form input. Used mainly inside `session.pre_session`,
+but legal in regular beats too (e.g. form-fill demos).
+
+```yaml
+action:
+  type: fill
+  selector: "input[name=email]"
+  value: "demo@example.com"    # or "${ENV_VAR}"
+```
+
+`${ENV_VAR}` substitution applies to **all** actions inside
+`session.pre_session` — not just `fill` — so URLs and selectors can also
+reference env vars when useful. In regular beats, only `{{ base_url }}`
+template interpolation runs; env-var expansion is reserved for
+pre_session so credentials don't bleed into the storyboard.
+
+Credential hygiene: when the recorder logs a `fill` step that ran during
+pre_session, `value` is masked to `***` in stdout.
+
 ### `goto_pdf` (Phase B — for displaying a PDF page)
 
 Open the auto-generated HTML wrapper around a rasterized PDF page. The pdf must be declared in the top-level `pdfs:` block (see above); pre-flight handles fetching and rendering.

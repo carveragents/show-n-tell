@@ -29,6 +29,7 @@ import shutil
 import subprocess
 import sys
 import time
+from dataclasses import dataclass
 from pathlib import Path
 
 from playwright.sync_api import sync_playwright
@@ -47,8 +48,34 @@ PDF_WRAPPER_HELPER = SKILL_ROOT / "helpers" / "pdf_wrapper.py"
 SUPPORTED_ACTIONS = {
     "goto", "goto_and_scroll", "scroll_into_view", "scroll_y",
     "hover", "click", "wait_for_selector", "wait_for_url",
-    "goto_pdf",
+    "goto_pdf", "fill",
 }
+
+
+@dataclass
+class ActionContext:
+    """Bag of dependencies execute_action needs.
+
+    Keeps the dispatcher signature stable as new action types are added.
+    `recording_css` is injected after every navigation; `working_dir` and
+    `pdfs_by_id` are only used by `goto_pdf` today but future actions
+    (e.g. file uploads, screenshot save) may need them.
+    """
+    recording_css: str
+    working_dir: Path
+    pdfs_by_id: dict
+
+
+def _sanitize_action_for_logging(action: dict) -> dict:
+    """Return a copy with `value` masked when the action is a `fill`.
+
+    Used only on the pre_session code path — `fill` is legal in normal
+    beats too, but those values aren't credentials, so we don't mask
+    there (and avoid creating a false sense of security).
+    """
+    if action.get("type") == "fill":
+        return {**action, "value": "***"}
+    return action
 
 
 SMOOTH_SCROLL_TO_Y_JS = """async ({y, duration}) => {
@@ -98,30 +125,29 @@ def page_load_settle(page, recording_css: str):
     page.wait_for_timeout(300)
 
 
-def execute_action(page, action: dict, recording_css: str,
-                   working_dir: Path, pdfs_by_id: dict):
+def execute_action(page, action: dict, actx: ActionContext):
     t = action["type"]
     if t not in SUPPORTED_ACTIONS:
         raise ValueError(f"Unknown action type: {t!r}")
 
     if t == "goto":
         page.goto(action["url"], wait_until="networkidle")
-        page_load_settle(page, recording_css)
+        page_load_settle(page, actx.recording_css)
     elif t == "goto_pdf":
         pdf_id = action["pdf_id"]
-        entry = pdfs_by_id.get(pdf_id)
+        entry = actx.pdfs_by_id.get(pdf_id)
         if not entry:
             raise ValueError(f"goto_pdf: unknown pdf_id={pdf_id!r}; "
                              "declare it under storyboard.yaml `pdfs:`")
-        wrapper = (working_dir / "_assets" / "pdf_wrappers"
+        wrapper = (actx.working_dir / "_assets" / "pdf_wrappers"
                    / f"{pdf_id}_p{entry['page']}.html")
         if not wrapper.exists():
             raise FileNotFoundError(f"PDF wrapper missing: {wrapper}")
         page.goto(f"file://{wrapper.resolve()}", wait_until="networkidle")
-        page_load_settle(page, recording_css)
+        page_load_settle(page, actx.recording_css)
     elif t == "goto_and_scroll":
         page.goto(action["url"], wait_until="networkidle")
-        page_load_settle(page, recording_css)
+        page_load_settle(page, actx.recording_css)
         smooth_scroll_to_element(page, action["selector"])
     elif t == "scroll_y":
         smooth_scroll_to_y(page, action["y"], action.get("duration_ms", 900))
@@ -147,15 +173,33 @@ def execute_action(page, action: dict, recording_css: str,
         page.wait_for_timeout(200)
         if action.get("then_scroll"):
             smooth_scroll_to_element(page, action["then_scroll"])
+    elif t == "fill":
+        page.locator(action["selector"]).first.fill(action["value"])
     elif t == "wait_for_selector":
         page.wait_for_selector(action["selector"], timeout=action.get("timeout_ms", 5000))
     elif t == "wait_for_url":
         page.wait_for_url(lambda url: action["contains"] in url, timeout=10000)
 
 
-def run_pre_session(page, steps, recording_css: str):
-    """Phase B feature — auth/setup steps before recording. Stubbed in Phase A."""
-    print(f"  ! pre_session has {len(steps)} steps but is unimplemented in Phase A; skipping")
+def run_pre_session(page, steps, actx: ActionContext):
+    """Execute pre-recording setup steps (e.g. login). Values must already
+    be `expand_env`-resolved before being passed here.
+
+    Credentials (`fill.value`) are masked in all stdout so secrets pulled
+    from `${ENV_VAR}` don't leak into logs.
+    """
+    for step in steps:
+        safe = _sanitize_action_for_logging(step)
+        t0 = time.monotonic()
+        try:
+            execute_action(page, step, actx)
+        except Exception as e:
+            raise RuntimeError(
+                f"pre_session step failed: {safe!r}: {e}"
+            ) from e
+        dt_ms = int((time.monotonic() - t0) * 1000)
+        selector = safe.get("selector") or safe.get("url") or safe.get("contains") or ""
+        print(f"  pre-session  {safe['type']:14}  {dt_ms:5}ms  {selector}")
 
 
 def main():
@@ -197,7 +241,9 @@ def main():
     ]
 
     pre_session = demo_config.get("session", {}).get("pre_session") or []
-    expanded_pre = [interp_template(s, ctx) for s in pre_session]
+    # pre_session steps get BOTH {{ base_url }} interpolation AND ${ENV_VAR}
+    # expansion so credentials in `.env` resolve (see SCHEMAS.md "Login flow").
+    expanded_pre = [expand_env(interp_template(s, ctx)) for s in pre_session]
 
     # PDF pre-flight: render an HTML wrapper for every entry in `pdfs:`.
     # Skipped silently if the wrapper already exists (idempotent).
@@ -253,17 +299,25 @@ def main():
 
         page = playwright_ctx.new_page()
 
+        actx = ActionContext(
+            recording_css=recording_css,
+            working_dir=wd,
+            pdfs_by_id=pdfs_by_id,
+        )
+
         if expanded_pre:
             print(f"Running pre-session ({len(expanded_pre)} steps)…")
-            run_pre_session(page, expanded_pre, recording_css)
+            try:
+                run_pre_session(page, expanded_pre, actx)
+            except Exception as e:
+                sys.exit(f"\n✗ {e}")
             print("  ✓ pre-session complete\n")
 
         beat_start = time.monotonic()
         for beat in expanded_beats:
             t0 = time.monotonic()
             try:
-                execute_action(page, beat["action"], recording_css,
-                               wd, pdfs_by_id)
+                execute_action(page, beat["action"], actx)
             except Exception as e:
                 sys.exit(f"\n✗ beat {beat['id']!r} failed during action "
                          f"{beat['action']!r}: {e}")
