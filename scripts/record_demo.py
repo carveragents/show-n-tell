@@ -26,6 +26,7 @@ os.environ.pop("NODE_OPTIONS", None)
 import argparse
 import json
 import shutil
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -35,13 +36,18 @@ from playwright.sync_api import sync_playwright
 sys.path.insert(0, str(Path(__file__).parent))
 from _lib import (
     load_configs, resolve_working_dir, ensure_dir,
-    interp_template, load_dotenv_if_present,
+    interp_template, expand_env, load_dotenv_if_present,
 )
+
+
+SKILL_ROOT = Path(__file__).parent.parent
+PDF_WRAPPER_HELPER = SKILL_ROOT / "helpers" / "pdf_wrapper.py"
 
 
 SUPPORTED_ACTIONS = {
     "goto", "goto_and_scroll", "scroll_into_view", "scroll_y",
     "hover", "click", "wait_for_selector", "wait_for_url",
+    "goto_pdf", "fill",
 }
 
 
@@ -92,13 +98,26 @@ def page_load_settle(page, recording_css: str):
     page.wait_for_timeout(300)
 
 
-def execute_action(page, action: dict, recording_css: str):
+def execute_action(page, action: dict, recording_css: str,
+                   working_dir: Path, pdfs_by_id: dict):
     t = action["type"]
     if t not in SUPPORTED_ACTIONS:
         raise ValueError(f"Unknown action type: {t!r}")
 
     if t == "goto":
         page.goto(action["url"], wait_until="networkidle")
+        page_load_settle(page, recording_css)
+    elif t == "goto_pdf":
+        pdf_id = action["pdf_id"]
+        entry = pdfs_by_id.get(pdf_id)
+        if not entry:
+            raise ValueError(f"goto_pdf: unknown pdf_id={pdf_id!r}; "
+                             "declare it under storyboard.yaml `pdfs:`")
+        wrapper = (working_dir / "_assets" / "pdf_wrappers"
+                   / f"{pdf_id}_p{entry['page']}.html")
+        if not wrapper.exists():
+            raise FileNotFoundError(f"PDF wrapper missing: {wrapper}")
+        page.goto(f"file://{wrapper.resolve()}", wait_until="networkidle")
         page_load_settle(page, recording_css)
     elif t == "goto_and_scroll":
         page.goto(action["url"], wait_until="networkidle")
@@ -180,6 +199,33 @@ def main():
     pre_session = demo_config.get("session", {}).get("pre_session") or []
     expanded_pre = [interp_template(s, ctx) for s in pre_session]
 
+    # PDF pre-flight: render an HTML wrapper for every entry in `pdfs:`.
+    # Skipped silently if the wrapper already exists (idempotent).
+    pdfs = storyboard.get("pdfs", []) or []
+    pdfs_by_id = {p["id"]: p for p in pdfs}
+    if pdfs:
+        print(f"PDF pre-flight: {len(pdfs)} pdf(s)…")
+        for entry in pdfs:
+            pdf_id = entry["id"]
+            page_num = entry["page"]
+            wrapper = (wd / "_assets" / "pdf_wrappers"
+                       / f"{pdf_id}_p{page_num}.html")
+            if wrapper.exists():
+                print(f"  reuse  {pdf_id} p{page_num}")
+                continue
+            source = expand_env(interp_template(entry["source"], ctx))
+            cmd = [
+                "uv", "run", str(PDF_WRAPPER_HELPER),
+                "--working-dir", str(wd),
+                "--pdf-id", pdf_id,
+                "--pdf-source", source,
+                "--page", str(page_num),
+            ]
+            if entry.get("citation"):
+                cmd += ["--citation", entry["citation"]]
+            subprocess.run(cmd, check=True)
+        print()
+
     out_dir = ensure_dir(wd / "_intermediate")
     video_tmp = ensure_dir(wd / "_intermediate" / "_video_tmp")
     video_out = out_dir / "reference.webm"
@@ -216,7 +262,8 @@ def main():
         for beat in expanded_beats:
             t0 = time.monotonic()
             try:
-                execute_action(page, beat["action"], recording_css)
+                execute_action(page, beat["action"], recording_css,
+                               wd, pdfs_by_id)
             except Exception as e:
                 sys.exit(f"\n✗ beat {beat['id']!r} failed during action "
                          f"{beat['action']!r}: {e}")

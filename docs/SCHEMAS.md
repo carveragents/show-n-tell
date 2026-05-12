@@ -50,6 +50,27 @@ beats:
 | `post_buffer_ms` | no | Override default 700ms POST_NARRATION_MS for this beat. |
 | `pre_buffer_ms` | no | Override default 400ms PRE_NARRATION_MS for this beat. |
 
+### Top-level `pdfs:` (optional, Phase B)
+
+If any beat needs to display a PDF page, declare the source PDFs at the top of `storyboard.yaml`. The recorder runs a pre-flight step that downloads each PDF, rasterizes the requested page via `pymupdf`, and renders an HTML wrapper (`recipes/inline_pdf.html.j2`) that a `goto_pdf` beat can open via `file://` — this sidesteps Chromium's native PDF download behavior (see GOTCHAS #4).
+
+```yaml
+pdfs:
+  - id: spme_2024_09_p60          # stable slug, used as filename + action ref
+    source: "{{ base_url }}/sources/2024-09.pdf"   # local path or http(s) URL
+    page: 60                       # 1-indexed
+    citation: "SPME §6.2.2"        # optional, shown in wrapper toolbar
+```
+
+| Field | Required | Notes |
+|---|---|---|
+| `id` | yes | Stable slug. One id per (pdf × page). Used in `goto_pdf` action and as filename. |
+| `source` | yes | Local path or `http(s)://` URL. Supports `{{ base_url }}` and `${ENV_VAR}` interpolation. |
+| `page` | yes | 1-indexed page number to rasterize. |
+| `citation` | no | Free-text label shown in the wrapper's toolbar (e.g. `"SPME §6.2.2"`). |
+
+Pre-flight is idempotent: if `<working_dir>/_assets/pdf_wrappers/<id>_p<page>.html` already exists, that entry is skipped.
+
 ### Narration constraints (must enforce when drafting)
 
 1. **Every factual claim in the narration must be verifiable on screen at this beat's frame.** If you say "five releases", "5" must be visible in the rendered page. No invented numbers.
@@ -225,6 +246,18 @@ action:
   selector: ".tabs a[href='#redline']"
   then_scroll: "#redline"      # optional
 ```
+
+### `goto_pdf` (Phase B — for displaying a PDF page)
+
+Open the auto-generated HTML wrapper around a rasterized PDF page. The pdf must be declared in the top-level `pdfs:` block (see above); pre-flight handles fetching and rendering.
+
+```yaml
+action:
+  type: goto_pdf
+  pdf_id: spme_2024_09_p60     # must match an entry in storyboard's `pdfs:`
+```
+
+The recorder resolves the wrapper file at `<working_dir>/_assets/pdf_wrappers/<pdf_id>_p<page>.html` and navigates to it via `file://`. The wrapper shows a dark-toolbar PDF-viewer-style chrome with the requested page rendered as a PNG at 2x DPI (~144 dpi), max 900px wide.
 
 ### `fill` (Phase B — for login flows + form demos)
 
