@@ -40,23 +40,37 @@ FADE_DURATION = 0.8
 AUDIO_SAMPLE_RATE = 24000
 AUDIO_CHANNEL_LAYOUT = "mono"
 
-MAC_FONT_CANDIDATES = [
+FONT_CANDIDATES = [
+    # macOS
     "/System/Library/Fonts/HelveticaNeue.ttc",
     "/System/Library/Fonts/Helvetica.ttc",
     "/Library/Fonts/Arial.ttf",
     "/System/Library/Fonts/Supplemental/Arial.ttf",
+    # Linux
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+    "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+    "/usr/share/fonts/truetype/noto/NotoSans-Bold.ttf",
+    # Windows
+    "C:/Windows/Fonts/arial.ttf",
 ]
 
 
 def load_font(size: int) -> ImageFont.ImageFont:
-    """Try a few macOS-native sans-serif paths; fall back to PIL default."""
-    for path in MAC_FONT_CANDIDATES:
+    """Try a few cross-platform sans-serif paths; error out if none found.
+
+    PIL's load_default() returns a ~10px bitmap font that ignores the requested
+    size, which would make slide text near-invisible. Better to fail clearly.
+    """
+    for path in FONT_CANDIDATES:
         if Path(path).exists():
             try:
                 return ImageFont.truetype(path, size)
             except OSError:
                 continue
-    return ImageFont.load_default()
+    sys.exit(
+        "No usable TrueType font found. Install one of: "
+        "Helvetica/Arial (macOS/Windows) or DejaVu/Liberation/Noto Sans (Linux)."
+    )
 
 
 def draw_centered_text(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.ImageFont,
@@ -96,14 +110,19 @@ def render_background(width: int, height: int, ink: tuple, ink_deep: tuple) -> I
 
 
 def paste_logo(canvas: Image.Image, logo: Image.Image, width_ratio: float,
-               center_x: int, top_y: int) -> int:
-    """Scale logo to `width_ratio * canvas.width` and paste centered horizontally.
+               max_height_ratio: float, center_x: int, top_y: int) -> int:
+    """Scale logo to fit within `width_ratio * canvas.width` AND
+    `max_height_ratio * canvas.height`, preserving aspect ratio, then paste
+    centered horizontally. The height cap prevents tall/square avatar-style
+    logos from overflowing into the brand-name area below.
+
     Returns the y of the bottom edge of the pasted logo.
     """
     target_w = int(canvas.width * width_ratio)
-    scale = target_w / logo.size[0]
+    max_h = int(canvas.height * max_height_ratio)
+    scale = min(target_w / logo.size[0], max_h / logo.size[1])
     sized = logo.resize(
-        (target_w, int(logo.size[1] * scale)),
+        (int(logo.size[0] * scale), int(logo.size[1] * scale)),
         Image.LANCZOS,
     )
     lx = center_x - sized.size[0] // 2
@@ -125,7 +144,7 @@ def render_intro_slide(width: int, height: int, branding: dict, logo: Image.Imag
     p = _palette(branding)
     brand = branding.get("brand", {}) or {}
     canvas = render_background(width, height, p["ink"], p["ink_deep"]).convert("RGBA")
-    logo_bottom = paste_logo(canvas, logo, 0.30, width // 2, int(height * 0.28))
+    logo_bottom = paste_logo(canvas, logo, 0.30, 0.28, width // 2, int(height * 0.28))
 
     draw = ImageDraw.Draw(canvas)
     y = logo_bottom + int(height * 0.06)
@@ -146,7 +165,7 @@ def render_outro_slide(width: int, height: int, branding: dict, logo: Image.Imag
     social = brand.get("social", {}) or {}
 
     canvas = render_background(width, height, p["ink"], p["ink_deep"]).convert("RGBA")
-    logo_bottom = paste_logo(canvas, logo, 0.25, width // 2, int(height * 0.22))
+    logo_bottom = paste_logo(canvas, logo, 0.25, 0.22, width // 2, int(height * 0.22))
 
     draw = ImageDraw.Draw(canvas)
     y = logo_bottom + int(height * 0.07)
@@ -183,7 +202,6 @@ def encode_slide(png_path: Path, out_path: Path, duration: float,
         "-f", "lavfi", "-t", f"{duration}",
         "-i", f"anullsrc=channel_layout={AUDIO_CHANNEL_LAYOUT}:sample_rate={AUDIO_SAMPLE_RATE}",
         "-vf", vf,
-        "-r", str(framerate),
         "-c:v", "libx264", "-preset", "medium", "-crf", "20",
         "-pix_fmt", "yuv420p",
         "-c:a", "aac", "-b:a", "192k",
