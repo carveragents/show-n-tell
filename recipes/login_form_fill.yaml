@@ -1,11 +1,17 @@
 # Canonical login pre-session shape.
 # Drop this under `session.pre_session:` in demo_config.yaml.
+#
 # `${ENV_VAR}` references resolve from the shell environment and from
 # `<working_dir>/.env` (auto-loaded by record_demo.py).
+#
+# Env-var naming convention: prefix per-demo credentials with a brand
+# namespace (here `ACME_`) so multiple demos can coexist on one machine
+# without clobbering each other's secrets. Rename `ACME_` to match your
+# brand / project before use.
 session:
   pre_session:
     - { type: goto, url: "{{ base_url }}/login" }
-    - { type: fill, selector: "input[name=email]",    value: "${DEMO_EMAIL}" }
-    - { type: fill, selector: "input[name=password]", value: "${DEMO_PASSWORD}" }
+    - { type: fill, selector: "input[name=email]",    value: "${ACME_DEMO_EMAIL}" }
+    - { type: fill, selector: "input[name=password]", value: "${ACME_DEMO_PASSWORD}" }
     - { type: click, selector: "button[type=submit]" }
     - { type: wait_for_url, contains: "/dashboard" }

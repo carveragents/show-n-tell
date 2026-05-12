@@ -194,9 +194,16 @@ def run_pre_session(page, steps, actx: ActionContext):
         try:
             execute_action(page, step, actx)
         except Exception as e:
+            msg = str(e)
+            # For fill failures, scrub any literal occurrence of the value
+            # from the error message before re-raising. `from None` breaks
+            # the cause chain so `__cause__` cannot leak the original
+            # Playwright exception (which may embed locator state).
+            if step.get("type") == "fill" and step.get("value"):
+                msg = msg.replace(step["value"], "***")
             raise RuntimeError(
-                f"pre_session step failed: {safe!r}: {e}"
-            ) from e
+                f"pre_session step failed: {safe!r}: {type(e).__name__}: {msg}"
+            ) from None
         dt_ms = int((time.monotonic() - t0) * 1000)
         selector = safe.get("selector") or safe.get("url") or safe.get("contains") or ""
         print(f"  pre-session  {safe['type']:14}  {dt_ms:5}ms  {selector}")
