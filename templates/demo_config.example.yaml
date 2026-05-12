@@ -29,6 +29,7 @@ features:
   captions:
     enabled: false               # Phase B
     mode: "burned"               # burned | srt-sidecar
+    # srt-sidecar mode writes <output>.mp4.srt alongside the video
   brand_overlay: true            # badge + waveform
 
 recording:

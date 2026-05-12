@@ -168,7 +168,7 @@ Phase A's `brand_video.py` handles badge + waveform only. Phase B adds a **new**
 
 - [ ] **Caption burn-in** (when `captions.mode == "burned"`): ffmpeg `subtitles=<srt>:force_style='FontName=...,FontSize=...,Outline=2'` filter. Apply AFTER intro/outro concat so caption timing offsets correctly account for the intro duration (or burn captions before concat and adjust SRT timings — pick one approach and document).
 
-- [ ] **Caption sidecar** (when `captions.mode == "srt-sidecar"`): copy SRT next to final mp4 as `<filename>.srt`. No filter applied.
+- [ ] **Caption sidecar** (when `captions.mode == "srt-sidecar"`): copy SRT next to final mp4 as `<output>.mp4.srt` (e.g. `demo.mp4.srt`). No filter applied. Keeping the full video filename in the sidecar avoids stomping a sibling file that happens to share the basename (e.g. a pre-existing `demo.srt` from a different run).
 
 - [ ] **Default behavior** when all flags are off: copy the input mp4 through as-is (no re-encode).
 
