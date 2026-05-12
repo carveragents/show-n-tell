@@ -49,11 +49,15 @@ def build_srt_entries(timings: dict, narrations: dict, speed: float) -> list[str
     index = 0
     for t in timings["beats"]:
         beat_id = t["id"]
+        # Use the component sum (not wall-clock total_ms) so caption timing
+        # matches the audio track assembled by mux_demo.build_audio_track,
+        # which concatenates silence(action_ms + pre_ms) + tts + silence(post_ms).
+        beat_component_ms = t["action_ms"] + t["pre_ms"] + t["tts_ms"] + t["post_ms"]
         narration = narrations.get(beat_id)
         if narration is None:
             # Beat was removed from storyboard since timings were recorded.
             # Still advance the timeline so subsequent beats stay aligned.
-            cumulative_ms += t["total_ms"]
+            cumulative_ms += beat_component_ms
             continue
 
         raw_start_ms = cumulative_ms + t["action_ms"] + t["pre_ms"]
@@ -67,7 +71,7 @@ def build_srt_entries(timings: dict, narrations: dict, speed: float) -> list[str
             f"{format_srt_timestamp(start_ms)} --> {format_srt_timestamp(end_ms)}\n"
             f"{narration}\n"
         )
-        cumulative_ms += t["total_ms"]
+        cumulative_ms += beat_component_ms
 
     return entries
 
