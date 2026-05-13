@@ -139,6 +139,10 @@ def test_finalize_with_bg_music_path_produces_audible_mix(tmp_path):
     #      proving the signal passed through the filter graph rather than being
     #      dropped or severely attenuated. (A missing/broken mix would land near
     #      -60dBFS or lower.)
+    # TODO: this verifies the mix ran end-to-end but not that ducking engages.
+    # A stronger test would split the input into narration-segments and silence-
+    # segments and confirm RMS during silence > RMS during narration (bg music
+    # comes up during silence). Deferred — requires variable-content narration.
     rms_input = _audio_rms(branded)
     rms_output = _audio_rms(output)
     assert rms_output > -50.0, (

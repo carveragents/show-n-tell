@@ -176,8 +176,8 @@ def _bg_music_chain(
     """
     fade_out_start = max(0.0, total_duration - _BG_FADE_OUT_SECONDS)
     chain = (
-        f"[{bg_input_index}:a]aloop=loop=-1:size={_ALOOP_SIZE}, volume={bg_volume}[bg_loud]"
-        f";[bg_loud]afade=t=in:st=0:d={_BG_FADE_IN_SECONDS}, "
+        f"[{bg_input_index}:a]aloop=loop=-1:size={_ALOOP_SIZE},volume={bg_volume}[bg_loud]"
+        f";[bg_loud]afade=t=in:st=0:d={_BG_FADE_IN_SECONDS},"
         f"afade=t=out:st={fade_out_start:.4f}:d={_BG_FADE_OUT_SECONDS}[bg_faded]"
         f";{narration_label}asplit=2[narr_out][narr_side]"
         f";[bg_faded][narr_side]"
@@ -267,8 +267,11 @@ def concat_segments(
         # bg_music forces re-encode; bump crossfade up from 0 if needed
         effective_cf = crossfade_seconds if crossfade_seconds > 0 else 0.5
         if bg_music_path and crossfade_seconds == 0:
-            print("  Note: bg music enabled; using 0.5s crossfade "
-                  "(overrides features.crossfade_seconds=0 — re-encode required anyway).",
+            seam_count = max(0, len(segments) - 1)
+            shrink = seam_count * effective_cf
+            print(f"  Note: bg music enabled; using {effective_cf}s crossfade at each "
+                  f"of {seam_count} seam(s) (final duration shrinks by ~{shrink:.1f}s; "
+                  "overrides features.crossfade_seconds=0 — re-encode required anyway).",
                   file=sys.stderr)
         _concat_xfade(
             segments, output_path, effective_cf,
