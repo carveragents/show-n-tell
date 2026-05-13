@@ -18,6 +18,7 @@ features:
   captions:
     enabled: true
     mode: "burned"
+  crossfade_seconds: 0.5
   brand_overlay: true
 
 recording:

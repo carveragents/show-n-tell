@@ -164,6 +164,7 @@ features:
   captions:
     enabled: false             # default off
     mode: "burned"             # burned | srt-sidecar
+  crossfade_seconds: 0.5       # 0 disables; up to 2.0
   brand_overlay: true          # badge + waveform
 
 recording:
@@ -172,6 +173,10 @@ recording:
   pre_narration_ms: 400
   post_narration_ms: 700
 ```
+
+### `features.crossfade_seconds` (number, default `0.5`, range `0`–`2.0`)
+
+Controls the duration of the audio + video cross-dissolve at the intro→main and main→outro seams. `0` disables the dissolve and uses the faster `-c copy` concat path (no re-encode). Values up to `2.0` are accepted; longer dissolves are refused because they eat too much intro/outro content. The dissolve uses ffmpeg's `xfade=transition=fade` (video) and `acrossfade=c1=tri:c2=tri` (audio). Crossfading shortens the final video duration by `(N-1) * crossfade_seconds` seconds.
 
 ### Login flow (Phase B)
 

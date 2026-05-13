@@ -295,3 +295,11 @@ except KeyError:
 ```
 
 Also: `_sanitize_action_for_logging()` must mask the resolved `value` field of any `fill` step before the recorder prints its per-step progress line. Print `value: ***` (or the env-var name with the resolved string redacted), not the resolved password.
+
+## 23. xfade crossfade requires headroom inside each segment
+
+**Symptom:** Configuring `features.crossfade_seconds: 4.0` against a 4-second intro produces a black or garbled output.
+
+**Cause:** ffmpeg's `xfade` filter requires the crossfade duration to be strictly less than each adjacent segment's duration. When the crossfade equals or exceeds the shorter segment, there's no clean frame to dissolve from.
+
+**Workaround:** `scripts/finalize_video.py` probes each segment's duration via `ffprobe` and refuses to run if `crossfade_seconds >= min(durations)`. The error message names the offending segment duration. Also: crossfading shortens the final video by `(N-1) * crossfade_seconds`, so a 0.5s dissolve across 3 segments removes 1 second from the total.

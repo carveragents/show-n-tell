@@ -30,6 +30,7 @@ features:
     enabled: false               # Phase B
     mode: "burned"               # burned | srt-sidecar
     # srt-sidecar mode writes <output>.mp4.srt alongside the video
+  crossfade_seconds: 0.5         # 0 = hard cuts (fast `-c copy`); >0 = xfade+acrossfade at intro/main/outro seams. Capped at 2.0.
   brand_overlay: true            # badge + waveform
 
 recording:

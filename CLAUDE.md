@@ -72,6 +72,7 @@ These are real-world fixes from the original build — `docs/GOTCHAS.md` has ful
 - **`force_style` commas inside the `subtitles=` filter arg** must be backslash-escaped or ffmpeg interprets them as filter-graph delimiters. Preserve the `\,` style separators already in `finalize_video.py`.
 - **Encoder profile consistency for `-c copy` concat.** `make_intro_outro.py` and `brand_video.py` must produce matching framerate (25fps), h264 profile, audio sample rate (24000), and channel layout (mono) so `finalize_video.py` can concat with stream copy. If you adjust either script, audit the other.
 - **Credentials in `${ENV_VAR}` form only, never literal in YAML.** `record_demo.py` runs `expand_env` after `interp_template` (so `${VAR}` resolves after `{{ base_url }}`). The logger masks the resolved `value` for any `fill` step. Use `raise ... from None` when surfacing missing-env errors so chained `__cause__` doesn't leak the underlying value through traceback rendering.
+- **`finalize_video.py`'s concat is branch-dependent on `features.crossfade_seconds`.** When `0`, uses the concat demuxer with `-c copy` (instant, no re-encode). When `> 0`, uses an `xfade` + `acrossfade` filter graph (re-encodes the whole concat, ~30-60s for a 5-minute video, but produces soft seams). Don't "optimize" by always taking the copy path — you lose the seam polish. If you change `make_intro_outro.py`'s or `brand_video.py`'s codec profile, the copy path may also start failing; audit both.
 
 ## Non-negotiable behavioral constraints
 
