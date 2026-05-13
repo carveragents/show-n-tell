@@ -13,10 +13,10 @@ output:
   target_duration_seconds: 300
 
 features:
-  intro_slide: false       # Phase B
-  outro_slide: false       # Phase B
+  intro_slide: true
+  outro_slide: true
   captions:
-    enabled: false         # Phase B
+    enabled: true
     mode: "burned"
   brand_overlay: true
 

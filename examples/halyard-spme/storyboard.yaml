@@ -2,6 +2,17 @@
 # This is the canonical reference example for the demo-video-from-site skill.
 # Reproduces ~/work/scribble/code/repos/carver/policy-diffs/credio-policies/dist/demo-video.mp4.
 
+# Source PDFs referenced by `goto_pdf` beats. The PDF is downloaded from
+# `source` at prep time, the requested page is rasterized via pymupdf, and
+# an HTML wrapper (chrome + page image) is generated for inline playback.
+# The original SPME PDF was archived from mastercard.com via the Internet
+# Archive; it is served from the dist site under sources/spme/.
+pdfs:
+  - id: spme_2024_09_p60
+    source: "{{ base_url }}/sources/spme/20240901001027.pdf"
+    page: 60
+    citation: "Mastercard SPME §6.2.2 · Sep 2024"
+
 beats:
   # ── Segment 1: Overview ────────────────────────────────────────────────
   - id: 01_overview_hero
@@ -91,7 +102,7 @@ beats:
       link includes a page-number anchor.
 
   - id: 13_change_pdf
-    action: { type: goto, url: "{{ base_url }}/_recording_assets/pdf_view_2024-09_p60.html" }
+    action: { type: goto_pdf, pdf_id: spme_2024_09_p60 }
     narration: >-
       Click the link and the original Mastercard document opens at the exact
       page where the cited section appears. No hunting through two hundred

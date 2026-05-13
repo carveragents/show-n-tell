@@ -1,0 +1,45 @@
+# Login-flow reference storyboard — 5 beats demonstrating post-login content.
+#
+# This example is a *structural* template, not a runnable recording. The URLs,
+# selectors, and policy-page paths below assume a fictional "Acme Cloud" app
+# with a standard email/password login form, a /dashboard landing page, and
+# /projects, /reports, /settings sections. Adapt the URLs and selectors to
+# match your actual application before recording.
+#
+# How the auth happens: see `demo_config.yaml`'s `session.pre_session` block,
+# which logs in once before the recording starts. Subsequent beats inherit
+# the authenticated Playwright context (cookies + localStorage carry through).
+
+beats:
+  - id: 01_dashboard_landing
+    action: { type: goto, url: "{{ base_url }}/dashboard" }
+    narration: >-
+      Once logged in, the dashboard surfaces the three most recent projects
+      across the team, with their build status and the last deploy.
+
+  - id: 02_projects_list
+    action: { type: goto, url: "{{ base_url }}/projects" }
+    narration: >-
+      The full project list lives one click away. Each row shows ownership,
+      environment, and a deploy-frequency sparkline for the past two weeks.
+
+  - id: 03_projects_filter
+    action: { type: hover, selector: "[data-testid='filter-env-prod']" }
+    narration: >-
+      Filter pills above the table let reviewers narrow to a single
+      environment or owner without leaving the page.
+
+  - id: 04_reports
+    action:
+      type: goto_and_scroll
+      url: "{{ base_url }}/reports"
+      selector: "[data-testid='reports-chart']"
+    narration: >-
+      The Reports view pivots the same data by week and by team — useful for
+      spotting deployment slowdowns before they become bottlenecks.
+
+  - id: 05_settings
+    action: { type: goto, url: "{{ base_url }}/settings" }
+    narration: >-
+      And every workspace setting — from notification channels to retention
+      policy — is consolidated under one tabbed Settings panel.

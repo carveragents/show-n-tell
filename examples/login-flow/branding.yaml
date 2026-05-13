@@ -1,0 +1,34 @@
+# Generic / placeholder branding for the login-flow reference example.
+# Swap in your real brand name, logo, colors, and copy before recording.
+
+brand:
+  name: "Acme Cloud"
+  tagline: "Ship faster, with fewer surprises"
+  cta:
+    text: "Start your free trial"
+    url: "https://acmecloud.example.com"
+  social:
+    twitter: "@acmecloud"
+    linkedin: "acmecloud"
+
+logo:
+  # Drop a PNG with a transparent background here (preferably the wordmark, not
+  # the icon). make_overlay.py will recolor it to `colors.cream` for the badge.
+  # A 600x200 transparent PNG is a safe default size.
+  path: "./_assets/acme_wordmark.png"
+
+colors:
+  ink: "#0f172a"       # badge base — pick a deep, near-black brand color
+  ink_deep: "#020617"  # inner gradient stop (darker than ink)
+  accent: "#22d3ee"    # ring border, waveform, pulse rings (pick a brand accent)
+  cream: "#f8fafc"     # logo recolor (use a near-white for contrast on dark badge)
+
+voice:
+  provider: openai
+  model: "gpt-4o-mini-tts"
+  voice: cedar
+  tone: "explanatory"
+  instructions: |
+    Read calmly and clearly, like a confident product walkthrough narrator.
+    Pace around 140 words per minute. Leave small natural breaths between
+    sentences.

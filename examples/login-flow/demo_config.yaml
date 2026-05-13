@@ -1,0 +1,41 @@
+# Per-demo config for the login-flow reference example.
+#
+# The `session.pre_session` block runs once on the Playwright context before
+# any beat is recorded, so the recording starts from the authenticated state.
+# Credentials are pulled from environment variables (or `.env` in the working
+# dir) — never paste real passwords into this file.
+#
+# Env-var naming: `ACME_DEMO_*` is a placeholder namespace. Rename to match
+# your brand/project so multiple demos can coexist on one machine without
+# stepping on each other's secrets.
+
+site:
+  base_url: "https://app.acmecloud.example.com"
+
+session:
+  pre_session:
+    - { type: goto, url: "{{ base_url }}/login" }
+    - { type: fill, selector: "input[name=email]",    value: "${ACME_DEMO_EMAIL}" }
+    - { type: fill, selector: "input[name=password]", value: "${ACME_DEMO_PASSWORD}" }
+    - { type: click, selector: "button[type=submit]" }
+    - { type: wait_for_url, contains: "/dashboard" }
+
+output:
+  filename: "acme-login-demo.mp4"
+  working_dir: "~/demo-videos/acme-login-flow"
+  speed_multiplier: 1.2
+  target_duration_seconds: 90
+
+features:
+  intro_slide: true
+  outro_slide: true
+  captions:
+    enabled: true
+    mode: "burned"
+  brand_overlay: true
+
+recording:
+  viewport: { width: 1440, height: 900 }
+  framerate: 25
+  pre_narration_ms: 400
+  post_narration_ms: 700

@@ -2,6 +2,13 @@
 
 brand:
   name: "Carver Agents"
+  tagline: "AI compliance agents for payment processors"
+  cta:
+    text: "See the live demo"
+    url: "https://carveragents.ai"
+  social:
+    twitter: "@carveragents"
+    linkedin: "carver-agents"
 
 logo:
   path: "./_assets/carver_wordmark.png"
