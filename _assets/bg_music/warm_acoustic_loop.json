@@ -1,10 +1,10 @@
 {
   "id": "warm_acoustic_loop",
-  "title": "PLACEHOLDER — Silent 3-min mp3",
-  "artist": "Unset (replace with curated track metadata)",
-  "duration_seconds": 180,
-  "license": "Placeholder; replace with the chosen track's license string",
-  "license_url": "",
-  "source_url": "",
-  "attribution_text": ""
+  "title": "For a Song",
+  "artist": "Big Infinite",
+  "duration_seconds": 200,
+  "license": "CC-BY 3.0",
+  "license_url": "http://creativecommons.org/licenses/by/3.0/",
+  "source_url": "https://www.jamendo.com/track/1507067",
+  "attribution_text": "\"For a Song\" by Big Infinite via Jamendo (CC-BY 3.0)"
 }

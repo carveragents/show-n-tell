@@ -1,10 +1,10 @@
 {
   "id": "upbeat_morning",
-  "title": "PLACEHOLDER — Silent 3-min mp3",
-  "artist": "Unset (replace with curated track metadata)",
-  "duration_seconds": 180,
-  "license": "Placeholder; replace with the chosen track's license string",
-  "license_url": "",
-  "source_url": "",
-  "attribution_text": ""
+  "title": "Energy",
+  "artist": "Pokki DJ",
+  "duration_seconds": 230,
+  "license": "CC-BY 3.0",
+  "license_url": "http://creativecommons.org/licenses/by/3.0/",
+  "source_url": "https://www.jamendo.com/track/1129271",
+  "attribution_text": "\"Energy\" by Pokki DJ via Jamendo (CC-BY 3.0)"
 }

@@ -1,10 +1,10 @@
 {
   "id": "tech_modern_pulse",
-  "title": "PLACEHOLDER — Silent 3-min mp3",
-  "artist": "Unset (replace with curated track metadata)",
-  "duration_seconds": 180,
-  "license": "Placeholder; replace with the chosen track's license string",
-  "license_url": "",
-  "source_url": "",
-  "attribution_text": ""
+  "title": "This Or That",
+  "artist": "Luigi Talluto",
+  "duration_seconds": 207,
+  "license": "CC-BY-SA 3.0",
+  "license_url": "http://creativecommons.org/licenses/by-sa/3.0/",
+  "source_url": "https://www.jamendo.com/track/1114380",
+  "attribution_text": "\"This Or That\" by Luigi Talluto via Jamendo (CC-BY-SA 3.0)"
 }
