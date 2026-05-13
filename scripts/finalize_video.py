@@ -140,6 +140,28 @@ def _build_xfade_filter(durations: list[float], crossfade_seconds: float) -> str
     return ";".join(video_parts + audio_parts)
 
 
+def _validate_crossfade_seconds(value) -> float:
+    """Normalize and validate features.crossfade_seconds. Returns the float.
+
+    Allowed: any non-negative number up to a hard cap of 2.0s. 0 = hard cuts
+    (concat demuxer fast path). Negative, non-numeric, or > 2.0 -> exit with
+    a clear error.
+    """
+    if not isinstance(value, (int, float)) or isinstance(value, bool):
+        sys.exit(f"features.crossfade_seconds must be a number, got {value!r}")
+    v = float(value)
+    if v != v:  # NaN
+        sys.exit("features.crossfade_seconds must be a number, got NaN")
+    if v < 0:
+        sys.exit(f"features.crossfade_seconds must be >= 0, got {v}")
+    if v > 2.0:
+        sys.exit(
+            f"features.crossfade_seconds capped at 2.0s, got {v}. "
+            "Longer dissolves eat too much intro/outro content."
+        )
+    return v
+
+
 def concat_segments(segments: list[Path], output_path: Path, tmp_dir: Path) -> None:
     """ffmpeg concat demuxer with -c copy. Requires matching codec/fps/sr.
 
