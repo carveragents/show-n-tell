@@ -4,6 +4,7 @@ Kept small and dependency-light. Loaded by other scripts via:
     sys.path.insert(0, str(Path(__file__).parent))
     from _lib import ...
 """
+import json
 import os
 import re
 import subprocess
@@ -136,10 +137,20 @@ def resolve_bg_music_path(
       - ValueError if both modes set, or mood unknown / has empty track list
       - FileNotFoundError if a referenced file does not exist
     """
-    import json
     audio = (branding.get("audio") or {})
     path_raw = audio.get("bg_music_path")
     mood = audio.get("bg_music_mood")
+
+    if path_raw == "":
+        raise ValueError(
+            "branding.audio.bg_music_path is set to an empty string; "
+            "remove the key or supply a path"
+        )
+    if mood == "":
+        raise ValueError(
+            "branding.audio.bg_music_mood is set to an empty string; "
+            "remove the key or supply a mood name"
+        )
 
     if path_raw and mood:
         raise ValueError(
@@ -164,7 +175,13 @@ def resolve_bg_music_path(
             f"Bundled music library missing at {library_path}. "
             "Skill installation appears corrupted; re-install or restore the _assets/bg_music/ folder."
         )
-    library = json.loads(library_path.read_text())
+    try:
+        library = json.loads(library_path.read_text())
+    except json.JSONDecodeError as exc:
+        raise ValueError(
+            f"_assets/bg_music/library.json is not valid JSON: {exc}. "
+            "Restore it from the skill installation or re-run the curation step."
+        ) from exc
     moods = library.get("moods", {})
     if mood not in moods:
         raise ValueError(

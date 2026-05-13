@@ -10,7 +10,7 @@ from _lib import resolve_bg_music_path  # noqa: E402
 
 
 def _make_library(skill_dir: Path, moods_to_tracks: dict,
-                  create_track_files: bool = True) -> Path:
+                  create_track_files: bool = True) -> None:
     bgm = skill_dir / "_assets" / "bg_music"
     bgm.mkdir(parents=True)
     (bgm / "library.json").write_text(
@@ -20,7 +20,6 @@ def _make_library(skill_dir: Path, moods_to_tracks: dict,
         for tracks in moods_to_tracks.values():
             for tid in tracks:
                 (bgm / f"{tid}.mp3").touch()
-    return bgm
 
 
 def test_neither_set_returns_none(tmp_path):
@@ -91,4 +90,34 @@ def test_mood_with_empty_tracklist_raises(tmp_path):
 def test_library_json_missing(tmp_path):
     branding = {"audio": {"bg_music_mood": "warm"}}
     with pytest.raises(FileNotFoundError, match="library.json"):
+        resolve_bg_music_path(branding, working_dir=tmp_path, skill_dir=tmp_path)
+
+
+def test_path_mode_tilde_expands_to_home(tmp_path, monkeypatch):
+    monkeypatch.setenv("HOME", str(tmp_path))
+    (tmp_path / "track.mp3").touch()
+    branding = {"audio": {"bg_music_path": "~/track.mp3"}}
+    result = resolve_bg_music_path(branding,
+                                   working_dir=tmp_path / "wd",
+                                   skill_dir=tmp_path)
+    assert result == (tmp_path / "track.mp3").resolve()
+
+
+def test_empty_path_string_raises(tmp_path):
+    branding = {"audio": {"bg_music_path": ""}}
+    with pytest.raises(ValueError, match="empty string"):
+        resolve_bg_music_path(branding, working_dir=tmp_path, skill_dir=tmp_path)
+
+
+def test_empty_mood_string_raises(tmp_path):
+    branding = {"audio": {"bg_music_mood": ""}}
+    with pytest.raises(ValueError, match="empty string"):
+        resolve_bg_music_path(branding, working_dir=tmp_path, skill_dir=tmp_path)
+
+
+def test_corrupted_library_json_raises_value_error(tmp_path):
+    (tmp_path / "_assets" / "bg_music").mkdir(parents=True)
+    (tmp_path / "_assets" / "bg_music" / "library.json").write_text("{not valid json")
+    branding = {"audio": {"bg_music_mood": "warm"}}
+    with pytest.raises(ValueError, match="not valid JSON"):
         resolve_bg_music_path(branding, working_dir=tmp_path, skill_dir=tmp_path)
