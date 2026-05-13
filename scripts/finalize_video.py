@@ -98,6 +98,48 @@ def burn_captions(input_path: Path, srt_path: Path, output_path: Path,
     subprocess.run(cmd, check=True, cwd=tmp_dir)
 
 
+def _build_xfade_filter(durations: list[float], crossfade_seconds: float) -> str:
+    """Build the -filter_complex string for xfade + acrossfade across N segments.
+
+    For N segments with durations d_0..d_{N-1} and crossfade D:
+      Video chain: each xfade's offset = sum(d_0..d_{i-1}) - i*D
+      Audio chain: acrossfade with duration D, triangular curves
+
+    Returns the filter graph string. The caller pipes it into
+    `ffmpeg -filter_complex` and maps [v]/[a] to the output.
+    """
+    n = len(durations)
+    if n < 2:
+        raise ValueError(f"xfade needs >= 2 segments, got {n}")
+    if crossfade_seconds <= 0:
+        raise ValueError(f"crossfade_seconds must be > 0, got {crossfade_seconds}")
+    if crossfade_seconds >= min(durations):
+        raise ValueError(
+            f"crossfade_seconds={crossfade_seconds} must be less than the "
+            f"shortest segment duration ({min(durations):.2f}s)"
+        )
+
+    d = crossfade_seconds
+    video_parts: list[str] = []
+    audio_parts: list[str] = []
+    prev_v = "[0:v]"
+    prev_a = "[0:a]"
+    cum_offset = durations[0] - d
+    for i in range(1, n):
+        v_out = f"[v{i:02d}]" if i < n - 1 else "[v]"
+        a_out = f"[a{i:02d}]" if i < n - 1 else "[a]"
+        video_parts.append(
+            f"{prev_v}[{i}:v]xfade=transition=fade:duration={d}:offset={cum_offset:.4f}{v_out}"
+        )
+        audio_parts.append(
+            f"{prev_a}[{i}:a]acrossfade=d={d}:c1=tri:c2=tri{a_out}"
+        )
+        prev_v, prev_a = v_out, a_out
+        if i < n - 1:
+            cum_offset += durations[i] - d
+    return ";".join(video_parts + audio_parts)
+
+
 def concat_segments(segments: list[Path], output_path: Path, tmp_dir: Path) -> None:
     """ffmpeg concat demuxer with -c copy. Requires matching codec/fps/sr.
 
