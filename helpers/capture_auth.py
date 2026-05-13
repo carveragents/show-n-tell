@@ -25,6 +25,7 @@ import argparse
 import os
 import stat
 import sys
+import tempfile
 from pathlib import Path
 
 from playwright.sync_api import sync_playwright
@@ -63,28 +64,42 @@ def main():
         browser = pw.chromium.launch(headless=False)
         context = browser.new_context(viewport=viewport)
         page = context.new_page()
-        page.goto(args.start_url, wait_until="load", timeout=60_000)
+        try:
+            page.goto(args.start_url, wait_until="load", timeout=60_000)
+        except Exception as e:
+            sys.exit(f"\n✗ Could not load {args.start_url!r}: {e}")
 
         # Wait for the user to close the page / window. Playwright fires `close`
-        # on the page when the user clicks the X. Using timeout=0 = wait forever.
+        # whether they close just the tab (context stays alive) or the whole
+        # browser window (context dies). In both cases we proceed to storage_state
+        # save below; if the browser is gone, that call raises and we exit cleanly.
         try:
             page.wait_for_event("close", timeout=0)
         except Exception:
-            # If the context disappears (full window close) we just proceed
             pass
 
-        # Persist storage state. Context may still be alive even if the page
-        # was closed; if not, this is a no-op-style failure.
+        # Create a sibling 0600 temp file BEFORE writing — so credentials never
+        # exist on disk with default permissions.
+        fd, tmp = tempfile.mkstemp(dir=str(out_path.parent), prefix=".auth_", suffix=".tmp.json")
+        os.close(fd)
+        os.chmod(tmp, stat.S_IRUSR | stat.S_IWUSR)   # 0600 before any data lands
         try:
-            context.storage_state(path=str(out_path))
+            context.storage_state(path=tmp)
+            os.rename(tmp, out_path)                  # atomic on POSIX
+        except Exception as e:
+            try:
+                os.unlink(tmp)
+            except FileNotFoundError:
+                pass
+            sys.exit(
+                f"\n✗ Could not save storage_state to {out_path}: {e}\n"
+                f"  This usually means you closed the browser before login completed."
+            )
         finally:
             try:
                 browser.close()
             except Exception:
                 pass
-
-    # 0600 perms — discourage accidental sharing
-    os.chmod(out_path, stat.S_IRUSR | stat.S_IWUSR)
     print(f"\n✓ Saved {out_path} (mode 0600)", file=sys.stderr)
     print(f"\nNext step: add to your demo_config.yaml:", file=sys.stderr)
     print(f"  session:", file=sys.stderr)
