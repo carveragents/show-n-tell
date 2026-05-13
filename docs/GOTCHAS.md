@@ -303,3 +303,17 @@ Also: `_sanitize_action_for_logging()` must mask the resolved `value` field of a
 **Cause:** ffmpeg's `xfade` filter requires the crossfade duration to be strictly less than each adjacent segment's duration. When the crossfade equals or exceeds the shorter segment, there's no clean frame to dissolve from.
 
 **Workaround:** `scripts/finalize_video.py` probes each segment's duration via `ffprobe` and refuses to run if `crossfade_seconds >= min(durations)`. The error message names the offending segment duration. Also: crossfading shortens the final video by `(N-1) * crossfade_seconds`, so a 0.5s dissolve across 3 segments removes 1 second from the total.
+
+## 25. BG music files need -16 LUFS normalization
+
+**Symptom:** A user-provided `bg_music_path` either drowns out narration or is so quiet you can barely hear it, depending on the source file's loudness.
+
+**Cause:** Royalty-free music sites mix at wildly different loudness levels (anywhere from -22 LUFS for chill ambient to -8 LUFS for energetic pop). The `bg_music_volume=0.4` default and `sidechaincompress` params assume normalized inputs.
+
+**Workaround:** The six bundled library tracks are normalized to -16 LUFS at curation time using `ffmpeg-normalize`. If a user supplies their own track via `bg_music_path` and the mix sounds off:
+
+```bash
+uvx ffmpeg-normalize input.mp3 -o normalized.mp3 -t -16 --audio-codec libmp3lame
+```
+
+Or tune `bg_music_volume` empirically (0.2–0.7 range typical).

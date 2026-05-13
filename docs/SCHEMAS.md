@@ -132,6 +132,34 @@ captions:
 
 Outline width (1) and bottom margin (30) are not exposed — they're sane regardless of the chosen font size.
 
+### Audio bed (Phase B+; bg music under narration)
+
+```yaml
+audio:
+  # Exactly ONE of these two; both empty = no bg music (back-compat default).
+  bg_music_path: "./_assets/my_music.mp3"   # Mode A — local file
+  bg_music_mood: "warm"                     # Mode B — bundled library lookup
+  bg_music_volume: 0.4                      # 0.0–1.0; baseline before ducking
+                                            # (default 0.4)
+```
+
+**Mode A:** any path the user controls (absolute, `~`-prefixed, or relative to the working dir). Common formats: mp3, wav, m4a, flac.
+
+**Mode B:** one of six bundled moods. The skill looks up `library.moods[<mood>]` in `<skill>/_assets/bg_music/library.json` and uses the **first** track ID listed. Supported moods:
+
+| Mood | Feel | Use case |
+|---|---|---|
+| `upbeat` | Energetic, faster tempo | Product launches, motivation pitches |
+| `warm` | Friendly, mid-tempo, acoustic | Casual product demos (sensible default) |
+| `calm` | Slow, peaceful, ambient | Reflective explainer demos |
+| `playful` | Light, bouncy, fun | Consumer apps with playful brands |
+| `cinematic` | Dramatic, building | High-stakes pitches |
+| `tech` | Modern, electronic | B2B SaaS, dev tools |
+
+**Sidechain ducking:** music ducks down ~14dB when narration plays, releases over 400ms. Tuned for `cedar`/`marin` TTS voices. If a particular voice clashes (rare), override via `audio.sidechain_threshold` (default `0.05`) and `audio.sidechain_ratio` (default `8`).
+
+Setting both `bg_music_path` and `bg_music_mood` is an error caught at Phase 5.
+
 ### Color rules
 
 - All four colors are required if a logo + dark badge is desired.
