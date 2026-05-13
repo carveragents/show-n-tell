@@ -4,15 +4,20 @@ Builds a minimal test working dir with a fake narration video + a synthetic
 bg music input, runs finalize_video.py, and verifies the output audio has
 both narration and (ducked) music present.
 """
-import json
 import shutil
 import subprocess
-import sys
 from pathlib import Path
 
 import pytest
 
 SKILL_ROOT = Path(__file__).parent.parent.resolve()
+
+requires_uv = pytest.mark.skipif(
+    shutil.which("uv") is None, reason="uv not on PATH"
+)
+requires_ffmpeg = pytest.mark.skipif(
+    shutil.which("ffmpeg") is None, reason="ffmpeg not on PATH"
+)
 
 
 def _ffmpeg_run(cmd: list[str]) -> None:
@@ -46,9 +51,14 @@ def _make_test_inputs(wd: Path) -> tuple[Path, Path]:
 
 
 def _audio_rms(mp4: Path) -> float:
-    """Return the mean RMS of the output's audio stream (in dBFS-ish raw)."""
+    """Return RMS level dB of the mp4's audio, downmixed to mono first.
+
+    Downmixing via `-ac 1` produces a single channel so astats reports one
+    `RMS level dB:` line regardless of source channel count.
+    """
     result = subprocess.run(
-        ["ffmpeg", "-i", str(mp4), "-af", "astats=metadata=1:reset=0",
+        ["ffmpeg", "-i", str(mp4), "-ac", "1",
+         "-af", "astats=metadata=1:reset=0",
          "-f", "null", "-"],
         capture_output=True, text=True, check=True,
     )
@@ -61,29 +71,49 @@ def _audio_rms(mp4: Path) -> float:
 
 def _write_minimal_configs(wd: Path, bg_music_path: Path) -> None:
     """Write the three YAMLs the script reads."""
-    (wd / "demo_config.yaml").write_text(
-        "site: { base_url: 'http://x' }\n"
-        "session: { pre_session: [] }\n"
-        "output: { filename: 'out.mp4', working_dir: '" + str(wd) + "', "
-        "speed_multiplier: 1.0, target_duration_seconds: 10 }\n"
-        "features: { intro_slide: false, outro_slide: false, "
-        "captions: { enabled: false, mode: 'burned' }, "
-        "crossfade_seconds: 0.5, brand_overlay: false }\n"
-        "recording: { viewport: { width: 1440, height: 900 }, framerate: 25, "
-        "pre_narration_ms: 400, post_narration_ms: 700 }\n"
-    )
-    (wd / "branding.yaml").write_text(
-        "brand: { name: 'Test' }\n"
-        "logo: { path: './nope.png' }\n"
-        "colors: { ink: '#000', ink_deep: '#000', accent: '#fff', cream: '#fff' }\n"
-        "voice: { provider: 'openai', model: 'gpt-4o-mini-tts', voice: 'cedar', "
-        "tone: 'casual', instructions: '' }\n"
-        f"audio: {{ bg_music_path: '{bg_music_path}', bg_music_volume: 0.4 }}\n"
-    )
+    import yaml
+    demo_config = {
+        "site": {"base_url": "http://x"},
+        "session": {"pre_session": []},
+        "output": {
+            "filename": "out.mp4",
+            "working_dir": str(wd),
+            "speed_multiplier": 1.0,
+            "target_duration_seconds": 10,
+        },
+        "features": {
+            "intro_slide": False,
+            "outro_slide": False,
+            "captions": {"enabled": False, "mode": "burned"},
+            # Inert here — the no-features branch takes _mix_bg_music_only
+            # before crossfade_seconds is ever consulted.
+            "crossfade_seconds": 0.5,
+            "brand_overlay": False,
+        },
+        "recording": {
+            "viewport": {"width": 1440, "height": 900},
+            "framerate": 25,
+            "pre_narration_ms": 400,
+            "post_narration_ms": 700,
+        },
+    }
+    branding = {
+        "brand": {"name": "Test"},
+        "logo": {"path": "./nope.png"},
+        "colors": {"ink": "#000", "ink_deep": "#000",
+                   "accent": "#fff", "cream": "#fff"},
+        "voice": {"provider": "openai", "model": "gpt-4o-mini-tts",
+                  "voice": "cedar", "tone": "casual", "instructions": ""},
+        "audio": {"bg_music_path": str(bg_music_path), "bg_music_volume": 0.4},
+    }
+    (wd / "demo_config.yaml").write_text(yaml.dump(demo_config))
+    (wd / "branding.yaml").write_text(yaml.dump(branding))
     # Empty storyboard.yaml — finalize_video doesn't read it but load_configs might.
     (wd / "storyboard.yaml").write_text("beats: []\n")
 
 
+@requires_uv
+@requires_ffmpeg
 def test_finalize_with_bg_music_path_produces_audible_mix(tmp_path):
     """Without intro/outro/captions, bg music should be mixed via _mix_bg_music_only."""
     branded, music = _make_test_inputs(tmp_path)
@@ -99,27 +129,44 @@ def test_finalize_with_bg_music_path_produces_audible_mix(tmp_path):
     )
 
     assert output.exists()
-    # Confirm output is longer than 0 bytes and is a valid mp4
     assert output.stat().st_size > 1000
-    rms_with_music = _audio_rms(output)
-    # Sanity: a mix of 440Hz narration + ducked 220Hz music should be louder
-    # than either input alone; assert it's audible at all (i.e., not silent).
-    assert rms_with_music > -60.0, f"output audio appears silent: {rms_with_music} dB"
+
+    # Mix-strength check: amix normalizes by dividing amplitude by the number
+    # of inputs (default normalize=1), so the mixed output is typically 5–9dB
+    # quieter than the narration alone. What we verify:
+    #   1. Not silent — output is above -50dBFS.
+    #   2. Mix contribution — output is within 10dB of the input narration,
+    #      proving the signal passed through the filter graph rather than being
+    #      dropped or severely attenuated. (A missing/broken mix would land near
+    #      -60dBFS or lower.)
+    rms_input = _audio_rms(branded)
+    rms_output = _audio_rms(output)
+    assert rms_output > -50.0, (
+        f"output audio appears silent or near-silent: {rms_output:.1f}dB"
+    )
+    assert rms_output >= rms_input - 10.0, (
+        f"output audio is more than 10dB below input — mixing likely broken: "
+        f"input={rms_input:.1f}dB, output={rms_output:.1f}dB"
+    )
 
 
+@requires_uv
+@requires_ffmpeg
 def test_finalize_with_unknown_mood_fails_fast(tmp_path):
     """Mood not in the library → finalize_video.py exits non-zero with actionable error."""
     branded, _ = _make_test_inputs(tmp_path)
     _write_minimal_configs(tmp_path, tmp_path / "ignored.mp3")
     # Overwrite branding.yaml with an unknown mood
-    (tmp_path / "branding.yaml").write_text(
-        "brand: { name: 'Test' }\n"
-        "logo: { path: './nope.png' }\n"
-        "colors: { ink: '#000', ink_deep: '#000', accent: '#fff', cream: '#fff' }\n"
-        "voice: { provider: 'openai', model: 'gpt-4o-mini-tts', voice: 'cedar', "
-        "tone: 'casual', instructions: '' }\n"
-        "audio: { bg_music_mood: 'spicy' }\n"
-    )
+    import yaml
+    (tmp_path / "branding.yaml").write_text(yaml.dump({
+        "brand": {"name": "Test"},
+        "logo": {"path": "./nope.png"},
+        "colors": {"ink": "#000", "ink_deep": "#000",
+                   "accent": "#fff", "cream": "#fff"},
+        "voice": {"provider": "openai", "model": "gpt-4o-mini-tts",
+                  "voice": "cedar", "tone": "casual", "instructions": ""},
+        "audio": {"bg_music_mood": "spicy"},
+    }))
     result = subprocess.run(
         ["uv", "run", str(SKILL_ROOT / "scripts" / "finalize_video.py"),
          "--working-dir", str(tmp_path),
