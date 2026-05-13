@@ -250,7 +250,7 @@ Phase B shipped end-to-end on the date above. The Halyard reference now reproduc
 | 5 — Finalize video | `ab62957` + `277c326` |
 | 6 — Site exploration helpers | skipped (per recommendation; MCP tools cover the use case) |
 | 7 — Phase B Halyard example update | `4db30bc` |
-| 8 — SKILL.md + CLAUDE.md updates | this commit |
+| 8 — SKILL.md + CLAUDE.md updates | `7efe263` (+ `<this commit>` for the SHA fill-in) |
 
 ### What surfaced during the build (now captured)
 
