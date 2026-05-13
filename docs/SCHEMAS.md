@@ -225,10 +225,11 @@ your `demo_config.yaml` and you're done.
 **Re-capturing.** Sessions expire. When the demo starts recording you on a
 login page, re-run `capture_auth.py`.
 
-**Viewport match.** `capture_auth.py` defaults to viewport 1440x900 (the
-recorder default). If you customize `recording.viewport`, pass the same
-size via `--viewport WxH` — some sites invalidate sessions when the
-viewport changes.
+**Viewport match.** `capture_auth.py` and `helpers/explore_page.py` both
+default to viewport 1440x900 (the recorder default). If you customize
+`recording.viewport`, pass the same size via `--viewport WxH` to BOTH —
+some sites invalidate sessions when the viewport changes between capture,
+explore, and record.
 
 **Security.** `auth.json` contains live session tokens. Never commit it.
 The `examples/oauth-storage-state/` template includes a `.gitignore`.
