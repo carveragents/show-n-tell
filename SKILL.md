@@ -30,11 +30,45 @@ Ask one or two questions at a time, not all at once. Required:
 7. **Auth?** — does the site require login?
    - **No** → proceed.
    - **Yes, form-based** (site has its own email/password fields you control) → use `session.pre_session` in `demo_config.yaml`. Collect credential env-var names (NOT actual values) and the login URL/selectors. Tell the user to put the actual credentials in `<working_dir>/.env` themselves before running, never in chat. See `examples/login-flow/`.
-   - **Yes, OAuth / SSO / magic-link / passkey** (Google, Microsoft, Okta, etc.) → use `session.storage_state`. The user does NOT run any commands. YOU launch `helpers/capture_auth.py` for them during Phase 5 (see "Auth capture" sub-step), and they only log in interactively in the browser window that opens. See `examples/oauth-storage-state/`.
+   - **Yes, OAuth / SSO / magic-link / passkey** (Google, Microsoft, Okta, etc.) → use `session.storage_state`. The user does NOT run any commands. YOU launch `helpers/capture_auth.py` for them in Phase 2a, and they only log in interactively in the browser window that opens. The captured `auth.json` is then used for both Phase 2b exploration AND Phase 8 recording. See `examples/oauth-storage-state/`.
 
-## Phase 2 — Site exploration
+## Phase 2a — Auth capture (OAuth only)
 
-Use the Playwright MCP tools (`mcp__plugin_playwright_playwright__*`) to:
+Skip this phase entirely if Phase 1 question 7 settled on "no auth" or "form-based". For OAuth / SSO / magic-link / passkey, capture an authenticated session NOW, before site exploration — Phase 2b needs it to view authenticated pages.
+
+```bash
+mkdir -p ~/demo-videos/<demo-slug>/
+uv run helpers/capture_auth.py <login_or_start_url> \
+  --out ~/demo-videos/<demo-slug>/auth.json \
+  --viewport <recording.viewport from demo_config.yaml; default 1440x900>
+```
+
+Run this via the Bash tool with `timeout: 600000` (10 minutes — the max). The script opens a headed Chromium window. Tell the user in plain words:
+
+> "I'm opening a browser window for you to log in. Complete the login (Google, Microsoft, etc., handle 2FA), navigate to the page you want recording to start from, then close the browser window. I'll save the session and continue automatically."
+
+The script writes `auth.json` with mode 0600 atomically. If the user takes longer than 10 minutes (rare, but possible with phone-based 2FA in another room), the Bash timeout fires — just re-run the same command.
+
+`--viewport` MUST match `recording.viewport` in `demo_config.yaml`. Some sites fingerprint viewport size; mismatch can invalidate the captured session at record time or explore time.
+
+If Playwright's Chromium isn't installed yet (fresh skill clone), the script surfaces an actionable error. Run `uv run --with playwright playwright install chromium` once.
+
+## Phase 2b — Site exploration
+
+If Phase 2a ran (auth.json exists), use `helpers/explore_page.py` to view authenticated pages — the Playwright MCP can't load storage_state and would just see login walls. For non-auth demos, the Playwright MCP is fine and more interactive; use it as before.
+
+**For authenticated pages:**
+
+```bash
+mkdir -p ~/demo-videos/<demo-slug>/_explore/
+uv run helpers/explore_page.py https://target.example.com/dashboard \
+  --storage-state ~/demo-videos/<demo-slug>/auth.json \
+  --out-dir ~/demo-videos/<demo-slug>/_explore/
+```
+
+This writes three files per page into `_explore/`: `<slug>.png` (screenshot), `<slug>.dom.html` (DOM for selector picking), `<slug>.meta.json` ({url_requested, final_url, title, status}). Read the PNG with the Read tool to see the page; grep the DOM for selectors. If `final_url` in meta.json points at a login page, the session expired — re-run Phase 2a.
+
+**For public pages** (landing page, marketing pages on any demo; everything on a no-auth demo) — use the Playwright MCP tools (`mcp__plugin_playwright_playwright__*`) as before:
 
 - `browser_navigate` to the target URL, then to 2–5 pages the user's intent mentions.
 - `browser_snapshot` or `browser_take_screenshot` to see each page's layout.
@@ -114,27 +148,7 @@ If the user doesn't have a logo file on disk and only has a URL, download it wit
 
 If any beats need to show a PDF page (inline, not as a download dialog), declare them at the top of `storyboard.yaml` under a `pdfs:` block — see `docs/SCHEMAS.md`. The pre-record step in `record_demo.py` invokes `helpers/pdf_wrapper.py` for each declared PDF automatically; you don't need to run the wrapper script yourself.
 
-Confirm `OPENAI_API_KEY` is available (in the user's shell env or in `<working_dir>/.env`). If missing, ask the user to set it before running TTS. If form-based login is required, confirm any credential env-var names declared in `session.pre_session` are also set in `<working_dir>/.env`. If OAuth login is required, run the auth-capture step below before continuing.
-
-### Auth capture (OAuth / SSO / magic-link only)
-
-If `session.storage_state` is set in `demo_config.yaml`, capture an authenticated session BEFORE Phase 7 (TTS) or Phase 8 (record). The user does not run any commands — you do.
-
-```bash
-uv run helpers/capture_auth.py <login_or_start_url> \
-  --out ~/demo-videos/<demo-slug>/auth.json \
-  --viewport <recording.viewport from demo_config.yaml>
-```
-
-Run this via the Bash tool with `timeout: 600000` (10 minutes — the max). The script opens a headed Chromium window. Tell the user in plain words:
-
-> "I'm opening a browser window for you to log in. Complete the login (Google, Microsoft, etc., handle 2FA), navigate to the page you want recording to start from, then close the browser window. I'll save the session and continue automatically."
-
-The script writes `auth.json` with mode 0600 atomically. If the user takes longer than 10 minutes (rare, but possible with phone-based 2FA in another room), the Bash timeout fires — just re-run the same command.
-
-`--viewport` MUST match `recording.viewport` in `demo_config.yaml`. Some sites fingerprint viewport size; mismatch can invalidate the captured session at record time.
-
-If capture_auth.py is not pre-installed (first run after fresh clone), Playwright's Chromium may not be present either. The script's PEP 723 deps will install Playwright on demand via uv, but the user still needs `playwright install chromium` once. Surface that as an actionable error if you see Playwright's "Executable doesn't exist" message.
+Confirm `OPENAI_API_KEY` is available (in the user's shell env or in `<working_dir>/.env`). If missing, ask the user to set it before running TTS. If form-based login is required, confirm any credential env-var names declared in `session.pre_session` are also set in `<working_dir>/.env`. If OAuth login is required, confirm `auth.json` is already present in the working dir from Phase 2a — if it's missing, re-run Phase 2a's capture step.
 
 ## Phase 6 — Generate assets (badge)
 
