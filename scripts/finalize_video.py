@@ -29,6 +29,7 @@ features are active, the input is byte-copied through unchanged.
 # dependencies = ["pyyaml"]
 # ///
 import argparse
+import json
 import re
 import shutil
 import subprocess
@@ -52,6 +53,14 @@ SKILL_DIR = Path(__file__).parent.parent.resolve()
 # 900-tall video renders ~31px (~3.5% of video height, typical professional
 # subtitle size). Increase for emphasis, decrease for a denser look.
 DEFAULT_CAPTION_FONT_SIZE = 10
+
+# Bg music filter constants. Tuned for cedar/marin TTS; users can override
+# sidechain_threshold/ratio via branding.yaml's audio: block.
+_ALOOP_SIZE = 2_000_000_000     # ffmpeg expects an int, not a Python float
+_BG_FADE_IN_SECONDS = 1
+_BG_FADE_OUT_SECONDS = 2
+_SIDECHAIN_ATTACK_MS = 20
+_SIDECHAIN_RELEASE_MS = 400
 
 
 def _caption_force_style(font_size: int) -> str:
@@ -165,14 +174,17 @@ def _bg_music_chain(
 
     Caller appends this segment to the existing filter chain via `;`.
     """
-    fade_out_start = max(0.0, total_duration - 2.0)
+    fade_out_start = max(0.0, total_duration - _BG_FADE_OUT_SECONDS)
     chain = (
-        f"[{bg_input_index}:a]aloop=loop=-1:size=2e9, volume={bg_volume}[bg_loud]"
-        f";[bg_loud]afade=t=in:st=0:d=1, afade=t=out:st={fade_out_start:.4f}:d=2[bg_faded]"
+        f"[{bg_input_index}:a]aloop=loop=-1:size={_ALOOP_SIZE}, volume={bg_volume}[bg_loud]"
+        f";[bg_loud]afade=t=in:st=0:d={_BG_FADE_IN_SECONDS}, "
+        f"afade=t=out:st={fade_out_start:.4f}:d={_BG_FADE_OUT_SECONDS}[bg_faded]"
         f";{narration_label}asplit=2[narr_out][narr_side]"
         f";[bg_faded][narr_side]"
         f"sidechaincompress=threshold={sidechain_threshold}:"
-        f"ratio={sidechain_ratio}:attack=20:release=400[bg_ducked]"
+        f"ratio={sidechain_ratio}:attack={_SIDECHAIN_ATTACK_MS}:release={_SIDECHAIN_RELEASE_MS}[bg_ducked]"
+        # [narr_out] is the first amix input so duration=first terminates on
+        # narration end (not on the looped bg music's near-infinite duration).
         f";[narr_out][bg_ducked]amix=inputs=2:duration=first[final_audio]"
     )
     return chain, "[final_audio]"
@@ -206,6 +218,8 @@ def _mix_bg_music_only(
         "-i", str(bg_music_path),
         "-filter_complex", chain,
         "-map", "0:v", "-map", final_label,
+        # -c:v copy: safe because upstream (brand_video.py or burn_captions)
+        # always produces h264/yuv420p mp4 — see CLAUDE.md preserve invariants.
         "-c:v", "copy",
         "-c:a", "aac", "-b:a", "192k",
         str(output_path),
@@ -252,6 +266,10 @@ def concat_segments(
     else:
         # bg_music forces re-encode; bump crossfade up from 0 if needed
         effective_cf = crossfade_seconds if crossfade_seconds > 0 else 0.5
+        if bg_music_path and crossfade_seconds == 0:
+            print("  Note: bg music enabled; using 0.5s crossfade "
+                  "(overrides features.crossfade_seconds=0 — re-encode required anyway).",
+                  file=sys.stderr)
         _concat_xfade(
             segments, output_path, effective_cf,
             bg_music_path=bg_music_path, bg_volume=bg_volume,
@@ -335,13 +353,16 @@ def video_duration_seconds(path: Path) -> float:
 
 def _print_bg_music_attribution(bg_music_path: Path) -> None:
     """Print attribution from <bg_music>.json if present. Silent for user-provided files without sidecars."""
-    import json
     sidecar = bg_music_path.with_suffix(".json")
     if not sidecar.exists():
         return
     try:
         meta = json.loads(sidecar.read_text())
-    except (json.JSONDecodeError, OSError):
+    except (json.JSONDecodeError, OSError) as exc:
+        # Bundled tracks require attribution; bad sidecar = potential compliance
+        # gap. Surface a warning, don't crash.
+        print(f"  Warning: could not read music attribution from {sidecar}: {exc}",
+              file=sys.stderr)
         return
     attribution = meta.get("attribution_text")
     if attribution:
@@ -362,7 +383,10 @@ def main():
     wd = resolve_working_dir(args.working_dir)
     demo_config = load_yaml(wd / "demo_config.yaml")
     branding = load_yaml(wd / "branding.yaml")
-    bg_music_path = resolve_bg_music_path(branding, wd, SKILL_DIR)
+    try:
+        bg_music_path = resolve_bg_music_path(branding, wd, SKILL_DIR)
+    except (ValueError, FileNotFoundError) as exc:
+        sys.exit(f"✗ branding.yaml audio: {exc}")
     audio_cfg = branding.get("audio") or {}
     bg_volume = float(audio_cfg.get("bg_music_volume", 0.4))
     sidechain_threshold = float(audio_cfg.get("sidechain_threshold", 0.05))
