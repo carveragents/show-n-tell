@@ -121,6 +121,70 @@ def resolve_session_path(path: str, working_dir: Path) -> Path:
     return (working_dir / expanded).resolve()
 
 
+def resolve_bg_music_path(
+    branding: dict,
+    working_dir: Path,
+    skill_dir: Path,
+) -> Path | None:
+    """Resolve the background-music file path from branding.yaml's `audio:` block.
+
+    Returns:
+      - None if neither `bg_music_path` nor `bg_music_mood` is set
+      - Absolute Path for Mode A (user file) or Mode B (bundled library lookup)
+
+    Raises:
+      - ValueError if both modes set, or mood unknown / has empty track list
+      - FileNotFoundError if a referenced file does not exist
+    """
+    import json
+    audio = (branding.get("audio") or {})
+    path_raw = audio.get("bg_music_path")
+    mood = audio.get("bg_music_mood")
+
+    if path_raw and mood:
+        raise ValueError(
+            "branding.audio: set exactly one of bg_music_path or bg_music_mood, not both"
+        )
+    if not path_raw and not mood:
+        return None
+
+    if path_raw:
+        # Mode A — user-supplied file, resolved like session paths
+        resolved = resolve_session_path(path_raw, working_dir)
+        if not resolved.exists():
+            raise FileNotFoundError(
+                f"branding.audio.bg_music_path → {resolved} does not exist"
+            )
+        return resolved
+
+    # Mode B — bundled library lookup
+    library_path = skill_dir / "_assets" / "bg_music" / "library.json"
+    if not library_path.exists():
+        raise FileNotFoundError(
+            f"Bundled music library missing at {library_path}. "
+            "Skill installation appears corrupted; re-install or restore the _assets/bg_music/ folder."
+        )
+    library = json.loads(library_path.read_text())
+    moods = library.get("moods", {})
+    if mood not in moods:
+        raise ValueError(
+            f"branding.audio.bg_music_mood={mood!r} is not a known mood. "
+            f"Valid moods: {sorted(moods.keys())}"
+        )
+    track_ids = moods[mood]
+    if not track_ids:
+        raise ValueError(
+            f"branding.audio.bg_music_mood={mood!r} has no tracks in library.json"
+        )
+    track_path = skill_dir / "_assets" / "bg_music" / f"{track_ids[0]}.mp3"
+    if not track_path.exists():
+        raise FileNotFoundError(
+            f"Library mood={mood} → first track {track_ids[0]}.mp3 "
+            f"is missing at {track_path}"
+        )
+    return track_path
+
+
 def ensure_dir(p: Path) -> Path:
     p.mkdir(parents=True, exist_ok=True)
     return p
