@@ -40,5 +40,40 @@ def test_tilde_expands_to_home(tmp_path, monkeypatch):
     assert result == (tmp_path / "auth.json").resolve()
 
 
+def test_storage_state_missing_file_raises_actionable_error(tmp_path):
+    """record_demo.py exits with an actionable error when storage_state path doesn't exist.
+
+    We invoke record_demo.py as a subprocess against a minimal fake working dir
+    (just enough YAML to get past arg parsing and reach the context-creation block).
+    Asserts the error message names the resolved path and points at capture_auth.py.
+    """
+    import json
+    import subprocess
+
+    wd = tmp_path / "wd"
+    wd.mkdir()
+    (wd / "_voiceover").mkdir()
+    (wd / "_voiceover" / "manifest.json").write_text(json.dumps({"beats": []}))
+    (wd / "storyboard.yaml").write_text("beats: []\n")
+    (wd / "branding.yaml").write_text("brand:\n  name: Test\n")
+    (wd / "demo_config.yaml").write_text(
+        "site:\n  base_url: http://localhost\n"
+        "output:\n  filename: demo.mp4\n  working_dir: " + str(wd) + "\n"
+        "recording:\n  viewport: {width: 1440, height: 900}\n  framerate: 25\n"
+        "session:\n  storage_state: ./does-not-exist.json\n"
+    )
+
+    script = HERE.parent / "scripts" / "record_demo.py"
+    proc = subprocess.run(
+        ["uv", "run", str(script), "--working-dir", str(wd)],
+        capture_output=True, text=True, timeout=60,
+    )
+    assert proc.returncode != 0, f"Expected failure, got success. stdout: {proc.stdout!r}"
+    combined = proc.stdout + proc.stderr
+    assert "storage_state file not found" in combined, combined
+    assert str(wd / "does-not-exist.json") in combined, combined
+    assert "capture_auth.py" in combined, combined
+
+
 if __name__ == "__main__":
     sys.exit(pytest.main([__file__, "-v"]))

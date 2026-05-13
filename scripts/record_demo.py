@@ -38,6 +38,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from _lib import (
     load_configs, resolve_working_dir, ensure_dir,
     interp_template, expand_env, load_dotenv_if_present,
+    resolve_session_path,
 )
 
 
@@ -252,6 +253,17 @@ def main():
     # expansion so credentials in `.env` resolve (see SCHEMAS.md "Login flow").
     expanded_pre = [expand_env(interp_template(s, ctx)) for s in pre_session]
 
+    storage_state_raw = demo_config.get("session", {}).get("storage_state")
+    storage_state_path = None
+    if storage_state_raw:
+        storage_state_path = resolve_session_path(storage_state_raw, wd)
+        if not storage_state_path.exists():
+            sys.exit(
+                f"\n✗ storage_state file not found: {storage_state_path}\n"
+                f"  Capture it with: uv run helpers/capture_auth.py <start_url> "
+                f"--out {storage_state_path}"
+            )
+
     # PDF pre-flight: render an HTML wrapper for every entry in `pdfs:`.
     # Skipped silently if the wrapper already exists (idempotent).
     pdfs = storyboard.get("pdfs", []) or []
@@ -294,6 +306,9 @@ def main():
             record_video_dir=str(video_tmp),
             record_video_size=viewport,
         )
+        if storage_state_path:
+            ctx_kwargs["storage_state"] = str(storage_state_path)
+            print(f"Loading storage_state from {storage_state_path}")
         playwright_ctx = browser.new_context(**ctx_kwargs)
         if recording_css:
             playwright_ctx.add_init_script(f"""
