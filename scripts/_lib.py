@@ -105,6 +105,22 @@ def resolve_working_dir(raw: str) -> Path:
     return Path(raw).expanduser().resolve()
 
 
+def resolve_session_path(path: str, working_dir: Path) -> Path:
+    """Resolve a session-related path string against the working dir.
+
+    Rules:
+      - Absolute paths → returned as-is (resolved).
+      - `~`-prefixed → expanded against `$HOME`.
+      - Otherwise → joined to `working_dir` and resolved.
+
+    Used by record_demo.py for `session.storage_state`.
+    """
+    expanded = Path(path).expanduser()
+    if expanded.is_absolute():
+        return expanded.resolve()
+    return (working_dir / expanded).resolve()
+
+
 def ensure_dir(p: Path) -> Path:
     p.mkdir(parents=True, exist_ok=True)
     return p
