@@ -212,3 +212,86 @@ If the working dir already contains artifacts from a previous run, the skill sho
 - Always overwrite the final mp4
 
 Add a `--clean` flag to nuke everything and start fresh.
+
+## 18. libass not in default Homebrew `ffmpeg` formula
+
+**Symptom:** `finalize_video.py` (caption burn-in path) fails with `No such filter: 'subtitles'` or `Unrecognized option 'subtitles'` even though the ffmpeg binary is on PATH and recent.
+
+**Cause:** The default `brew install ffmpeg` formula is built without `--enable-libass`. The `subtitles=` filter is provided by libass, so it's silently absent.
+
+**Workaround:** `finalize_video.py` probes `ffmpeg -filters` for `subtitles` at startup and, when missing, emits an actionable error:
+
+```
+ERROR: this ffmpeg build was compiled without libass.
+  Run: brew uninstall ffmpeg && brew install ffmpeg-full
+  Or:  set features.captions.mode to "srt-sidecar" in demo_config.yaml
+```
+
+Don't try to fall back automatically — the user picked `mode: burned` for a reason; surface the choice instead of silently downgrading.
+
+## 19. ffmpeg `subtitles=` filter path escaping
+
+**Symptom:** Burn-in fails with `Unable to open <path>` or `No such file or directory` when the SRT path contains spaces, colons, or sits under a home directory with a tilde. macOS paths under `~/demo-videos/...` hit this when the working dir contains spaces.
+
+**Cause:** The `subtitles=` filter parses its argument as a filter-graph option string. Colons (`:`), commas (`,`), backslashes, and brackets are all interpreted; quoting rules differ between shells and ffmpeg's own parser.
+
+**Workaround:** In `finalize_video.py`, copy the SRT into a CWD-local temp file (e.g. `_finalize_tmp/captions.srt`), `chdir` into that directory, and invoke ffmpeg with just the basename. No escaping needed.
+
+```python
+shutil.copy(srt_path, tmp_dir / "captions.srt")
+subprocess.run(
+    ["ffmpeg", ..., "-vf", "subtitles=captions.srt:force_style='FontName=...'"],
+    cwd=tmp_dir,
+    check=True,
+)
+```
+
+## 20. `force_style` commas inside `subtitles=` need backslash-escaping
+
+**Symptom:** `subtitles=captions.srt:force_style='FontName=Inter,FontSize=22,Outline=2'` fails with errors about unrecognized filter options like `FontSize=22` or `Outline=2`.
+
+**Cause:** The outer filter-graph parser splits on `,` before the `force_style` value is parsed. The commas inside `force_style='...'` get treated as filter delimiters.
+
+**Workaround:** Backslash-escape the commas inside `force_style`:
+
+```
+subtitles=captions.srt:force_style='FontName=Inter\,FontSize=22\,Outline=2\,OutlineColour=&H000000&'
+```
+
+Yes, even though the value is wrapped in single quotes. ffmpeg's parser ignores the quotes at the filter-graph level. Preserve the `\,` separators already in `finalize_video.py`.
+
+## 21. Concat with `-c copy` requires matching encoder profiles
+
+**Symptom:** `finalize_video.py` concats intro + branded + outro and the resulting mp4 stutters, has audio drift, or plays only the first segment. Sometimes ffmpeg prints `Non-monotonous DTS` warnings during the concat.
+
+**Cause:** `-c copy` (stream copy) concat assumes the three inputs share **identical** codec parameters: framerate, h264 profile/level, audio codec, audio sample rate, channel layout, color space. If any differ, downstream players give up at the seam.
+
+**Workaround:** `make_intro_outro.py` and `brand_video.py` are both configured to emit the same profile (h264 yuv420p @ 30fps, AAC stereo 48000 Hz). If you customize either:
+
+- Match `-r 30` (or whatever your recording framerate is).
+- Match `-pix_fmt yuv420p` and `-profile:v high` consistently.
+- Match `-ar 48000 -ac 2 -c:a aac -b:a 192k` for the audio.
+- For silent slides, generate the AAC silence with `anullsrc=channel_layout=stereo:sample_rate=48000`, not the ffmpeg default.
+
+If you can't match exactly, swap `-c copy` for `-c:v libx264 -c:a aac` in the concat — slower, but the seam is clean.
+
+## 22. Credentials in `pre_session` — expansion order + traceback leaks
+
+**Symptom A — wrong order:** A `pre_session` step like `{ type: fill, selector: "#email", value: "${DEMO_EMAIL}" }` lands the literal string `${DEMO_EMAIL}` into the form field. The login fails with a confusing "invalid email" error.
+
+**Cause:** `record_demo.py` calls `interp_template(step, vars)` (handles `{{ base_url }}` style) and then `expand_env(step)` (handles `${ENV_VAR}` style). If you only call the first, `${...}` strings pass through unchanged.
+
+**Workaround:** Always run both expanders, in that order, before executing each pre_session step. The current order matters: `{{ var }}` first (in case the env-var value itself contains a Jinja-style reference, which we never want resolved), then `${ENV}` second.
+
+**Symptom B — leaked credential in traceback:** A missing env var raises `KeyError: 'DEMO_PASSWORD'`. Python's default traceback rendering prints `During handling of the above exception, another exception occurred:` and the original frame can include the surrounding dict whose values may have already been partially expanded for other steps.
+
+**Workaround:** Catch the `KeyError` in `expand_env` and re-raise a clean `RuntimeError(f"missing env var: {name}; add it to <working_dir>/.env")` with `from None`. The `from None` suppresses `__cause__` so the original frame (and any sibling values it might have referenced) doesn't render.
+
+```python
+try:
+    return os.environ[name]
+except KeyError:
+    raise RuntimeError(f"missing env var: {name}; add it to <working_dir>/.env") from None
+```
+
+Also: `_sanitize_action_for_logging()` must mask the resolved `value` field of any `fill` step before the recorder prints its per-step progress line. Print `value: ***` (or the env-var name with the resolved string redacted), not the resolved password.
