@@ -1,4 +1,4 @@
-# demo-video-from-site
+# 🎬 demo-video-from-site
 
 **Turn any website into a narrated, branded demo video in under 20 minutes.**
 
@@ -8,7 +8,7 @@ The output looks like a polished Loom-style product walkthrough — but faster t
 
 ---
 
-## What you'll need before starting
+## 🧰 What you'll need before starting
 
 | | What | How to get it |
 |---|---|---|
@@ -24,7 +24,7 @@ If you've never run Claude Code before: install it, sign in, then open a termina
 
 ---
 
-## Installing the skill
+## 📦 Installing the skill
 
 Once Claude Code is running, install this skill into your global skills folder:
 
@@ -39,7 +39,7 @@ The first time you make a demo for a logged-in site, you'll be prompted to run `
 
 ---
 
-## Your first demo
+## 🚀 Your first demo
 
 Open Claude Code in any folder (the demo will save outside your project — doesn't matter where you start). Type:
 
@@ -47,7 +47,7 @@ Open Claude Code in any folder (the demo will save outside your project — does
 
 Claude will ask you for the things below. You can answer in plain English, all at once or one at a time.
 
-### Things Claude will need from you (required)
+### 📋 Things Claude will need from you (required)
 
 1. **The URL** of the site you want to demo.
 2. **What story you want to tell** — 1–3 sentences. What features matter most? What should the viewer walk away knowing? Examples: *"Show off the new dashboard's live activity feed and how the AI auto-categorizes uploads"* or *"It's a meal planning app — I want viewers to see how easy it is to add a dish, get suggestions for tonight, and plan a week of dinners."*
@@ -60,7 +60,7 @@ Claude will ask you for the things below. You can answer in plain English, all a
 
 That's it for mandatory. Claude will refuse to start without intent and a logo — generic demos are bad demos.
 
-### Things you can adjust (optional)
+### 🎛️ Things you can adjust (optional)
 
 If you skip these, Claude picks sensible defaults.
 
@@ -75,7 +75,7 @@ You don't need to know YAML or read any config files. Just tell Claude in conver
 
 ---
 
-## What happens, step by step
+## 🎞️ What happens, step by step
 
 Once Claude has your inputs:
 
@@ -92,7 +92,7 @@ Once Claude has your inputs:
 
 ---
 
-## Iterating without re-doing everything
+## 🔁 Iterating without re-doing everything
 
 Demos are made for tweaking. Common changes and their cost:
 
@@ -109,7 +109,7 @@ You never have to "start over." Tell Claude what to change in plain English and 
 
 ---
 
-## What it costs
+## 💵 What it costs
 
 - **OpenAI TTS:** ~$0.10 per 3–5 minute demo. Pay-as-you-go on your own OpenAI account.
 - **Everything else:** free. Recording, encoding, captioning, brand overlay, music mixing — all local on your machine.
@@ -117,7 +117,7 @@ You never have to "start over." Tell Claude what to change in plain English and 
 
 ---
 
-## Limitations to know about
+## 🚧 Limitations to know about
 
 - **The skill drives a real browser.** If your site needs CAPTCHAs, a phone-based 2FA every login, or has aggressive anti-bot protection, recording may need a one-time human login (Claude handles this — opens Chrome, you log in once, the session is saved).
 - **Some "demo" pages require live AI processing** (e.g., "generate me a suggestion"). The recorder waits, but if your backend is slow that day the narration may run before the AI output appears. Re-record solves it.
@@ -127,7 +127,7 @@ You never have to "start over." Tell Claude what to change in plain English and 
 
 ---
 
-## Things that go wrong (and what to do)
+## 🔧 Things that go wrong (and what to do)
 
 | Symptom | Fix |
 |---|---|
@@ -141,7 +141,7 @@ If something else breaks, just paste the error message to Claude. Most issues ha
 
 ---
 
-## For developers (or the curious)
+## 📚 For developers (or the curious)
 
 Everything in this folder is open. If you want to understand how it works, or extend it:
 
@@ -155,7 +155,7 @@ You can hack on individual scripts without breaking anything else — the pipeli
 
 ---
 
-## Quick command reference
+## 💻 Quick command reference
 
 If you're driving the pipeline by hand instead of through Claude Code, every stage is one command. From the working directory of a demo:
 
