@@ -162,7 +162,21 @@ def _validate_crossfade_seconds(value) -> float:
     return v
 
 
-def concat_segments(segments: list[Path], output_path: Path, tmp_dir: Path) -> None:
+def concat_segments(segments: list[Path], output_path: Path, tmp_dir: Path,
+                    crossfade_seconds: float) -> None:
+    """Concatenate segments into output_path.
+
+    If crossfade_seconds == 0, uses ffmpeg's concat demuxer with -c copy
+    (instant, no re-encode). If > 0, uses an xfade + acrossfade filter graph
+    (re-encodes, ~30-60s for a 5-minute video, but produces soft seams).
+    """
+    if crossfade_seconds == 0:
+        _concat_copy(segments, output_path, tmp_dir)
+    else:
+        _concat_xfade(segments, output_path, crossfade_seconds)
+
+
+def _concat_copy(segments: list[Path], output_path: Path, tmp_dir: Path) -> None:
     """ffmpeg concat demuxer with -c copy. Requires matching codec/fps/sr.
 
     make_intro_outro and brand_video both produce h264 + AAC 24kHz mono +
@@ -177,6 +191,31 @@ def concat_segments(segments: list[Path], output_path: Path, tmp_dir: Path) -> N
         "-c", "copy",
         str(output_path),
     ]
+    print(" ".join(cmd))
+    subprocess.run(cmd, check=True)
+
+
+def _concat_xfade(segments: list[Path], output_path: Path,
+                  crossfade_seconds: float) -> None:
+    """Build a single ffmpeg -filter_complex call that chains xfade + acrossfade.
+
+    Probes each segment's duration via ffprobe, then constructs the filter
+    graph via `_build_xfade_filter`. Re-encodes with the same profile as
+    brand_video.py.
+    """
+    durations = [video_duration_seconds(p) for p in segments]
+    filter_graph = _build_xfade_filter(durations, crossfade_seconds)
+    cmd = ["ffmpeg", "-y"]
+    for seg in segments:
+        cmd.extend(["-i", str(seg)])
+    cmd.extend([
+        "-filter_complex", filter_graph,
+        "-map", "[v]", "-map", "[a]",
+        "-c:v", "libx264", "-preset", "medium", "-crf", "20",
+        "-pix_fmt", "yuv420p",
+        "-c:a", "aac", "-b:a", "192k",
+        str(output_path),
+    ])
     print(" ".join(cmd))
     subprocess.run(cmd, check=True)
 
@@ -213,6 +252,11 @@ def main():
             f"features.captions.mode must be 'burned' or 'srt-sidecar', "
             f"got {captions_mode!r}"
         )
+    # crossfade_seconds defaults to 0.5 (polish by default). Set to 0 to
+    # opt out and get the original -c copy concat fast path.
+    crossfade_seconds = _validate_crossfade_seconds(
+        features.get("crossfade_seconds", 0.5)
+    )
     # Caption styling lives in branding.yaml. Only font_size is exposed for
     # now (Outline=1 and MarginV=30 are sane regardless).
     caption_font_size = int(
@@ -264,7 +308,7 @@ def main():
             segments.append(middle_path)
             if want_outro:
                 segments.append(outro_path)
-            concat_segments(segments, output_path, tmp_dir)
+            concat_segments(segments, output_path, tmp_dir, crossfade_seconds)
         elif middle_path == input_path:
             # Captions-only with sidecar mode (no burn-in, no concat): copy through.
             # NB: never move/rename the input — it's the user's branded.mp4.
