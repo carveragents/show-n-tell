@@ -84,6 +84,7 @@ These come from the user's stated requirements — `docs/DESIGN-DECISIONS.md` is
 - **Refuse to proceed** if the user provides neither intent notes nor a logo. Generic demos with default branding are bad demos.
 - **Verify before claiming success.** After producing the final mp4, extract ≥3 spot-check frames and inspect them. Don't hand-wave success.
 - **Extract clean copies** of reference scripts into the skill folder — do not import from the policy-diffs repo at runtime. The skill is self-contained and portable.
+- **Skill orchestrates shell commands; user only does what fundamentally requires a human.** For OAuth-authenticated demos, this means: YOU launch `helpers/capture_auth.py` via Bash during Phase 5. The user only logs in in the browser window that opens. Never tell the user to "run this command yourself" when you can run it.
 
 ## Test target
 

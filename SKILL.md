@@ -30,7 +30,7 @@ Ask one or two questions at a time, not all at once. Required:
 7. **Auth?** — does the site require login?
    - **No** → proceed.
    - **Yes, form-based** (site has its own email/password fields you control) → use `session.pre_session` in `demo_config.yaml`. Collect credential env-var names (NOT actual values) and the login URL/selectors. Tell the user to put the actual credentials in `<working_dir>/.env` themselves before running, never in chat. See `examples/login-flow/`.
-   - **Yes, OAuth / SSO / magic-link / passkey** (Google, Microsoft, Okta, etc.) → use `session.storage_state` and pre-capture an authenticated session with `helpers/capture_auth.py`. Tell the user to run capture_auth.py themselves before continuing. See `examples/oauth-storage-state/`.
+   - **Yes, OAuth / SSO / magic-link / passkey** (Google, Microsoft, Okta, etc.) → use `session.storage_state`. The user does NOT run any commands. YOU launch `helpers/capture_auth.py` for them during Phase 5 (see "Auth capture" sub-step), and they only log in interactively in the browser window that opens. See `examples/oauth-storage-state/`.
 
 ## Phase 2 — Site exploration
 
@@ -114,7 +114,27 @@ If the user doesn't have a logo file on disk and only has a URL, download it wit
 
 If any beats need to show a PDF page (inline, not as a download dialog), declare them at the top of `storyboard.yaml` under a `pdfs:` block — see `docs/SCHEMAS.md`. The pre-record step in `record_demo.py` invokes `helpers/pdf_wrapper.py` for each declared PDF automatically; you don't need to run the wrapper script yourself.
 
-Confirm `OPENAI_API_KEY` is available (in the user's shell env or in `<working_dir>/.env`). If missing, ask the user to set it before running TTS. If login is required, confirm any credential env-var names declared in `session.pre_session` are also set in `<working_dir>/.env`.
+Confirm `OPENAI_API_KEY` is available (in the user's shell env or in `<working_dir>/.env`). If missing, ask the user to set it before running TTS. If form-based login is required, confirm any credential env-var names declared in `session.pre_session` are also set in `<working_dir>/.env`. If OAuth login is required, run the auth-capture step below before continuing.
+
+### Auth capture (OAuth / SSO / magic-link only)
+
+If `session.storage_state` is set in `demo_config.yaml`, capture an authenticated session BEFORE Phase 7 (TTS) or Phase 8 (record). The user does not run any commands — you do.
+
+```bash
+uv run helpers/capture_auth.py <login_or_start_url> \
+  --out ~/demo-videos/<demo-slug>/auth.json \
+  --viewport <recording.viewport from demo_config.yaml>
+```
+
+Run this via the Bash tool with `timeout: 600000` (10 minutes — the max). The script opens a headed Chromium window. Tell the user in plain words:
+
+> "I'm opening a browser window for you to log in. Complete the login (Google, Microsoft, etc., handle 2FA), navigate to the page you want recording to start from, then close the browser window. I'll save the session and continue automatically."
+
+The script writes `auth.json` with mode 0600 atomically. If the user takes longer than 10 minutes (rare, but possible with phone-based 2FA in another room), the Bash timeout fires — just re-run the same command.
+
+`--viewport` MUST match `recording.viewport` in `demo_config.yaml`. Some sites fingerprint viewport size; mismatch can invalidate the captured session at record time.
+
+If capture_auth.py is not pre-installed (first run after fresh clone), Playwright's Chromium may not be present either. The script's PEP 723 deps will install Playwright on demand via uv, but the user still needs `playwright install chromium` once. Surface that as an actionable error if you see Playwright's "Executable doesn't exist" message.
 
 ## Phase 6 — Generate assets (badge)
 
