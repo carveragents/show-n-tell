@@ -12,12 +12,9 @@ assert it produced a reference.webm and didn't print any 401 markers.
 """
 import http.server
 import json
-import socket
-import socketserver
 import subprocess
 import sys
 import threading
-import time
 from pathlib import Path
 
 import pytest
@@ -56,16 +53,10 @@ class CookieGatedHandler(http.server.SimpleHTTPRequestHandler):
         self.wfile.write(body.encode())
 
 
-def _free_port() -> int:
-    with socket.socket() as s:
-        s.bind(("127.0.0.1", 0))
-        return s.getsockname()[1]
-
-
 @pytest.fixture
 def gated_server():
-    port = _free_port()
-    server = socketserver.TCPServer(("127.0.0.1", port), CookieGatedHandler)
+    server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), CookieGatedHandler)
+    port = server.server_address[1]
     t = threading.Thread(target=server.serve_forever, daemon=True)
     t.start()
     try:
