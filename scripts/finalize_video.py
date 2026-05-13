@@ -40,10 +40,15 @@ from _lib import load_yaml, resolve_working_dir, ensure_dir
 
 # Subtle white-on-dark caption style; bottom-center with a small margin.
 # Alignment=2 = bottom-center in libass.
+#
+# FontSize note: ffmpeg's subtitles filter converts SRT to ASS using a default
+# PlayResY of 288. Text scales by (video_height / 288), so FontSize=22 on a
+# 900-tall video renders ~69px — far too big. FontSize=10 lands at ~31px,
+# which is ~3.5% of the video height (typical professional subtitle size).
 CAPTION_FORCE_STYLE = (
-    "FontName=Helvetica,FontSize=22,"
+    "FontName=Helvetica,FontSize=10,"
     "PrimaryColour=&Hffffff,OutlineColour=&H000000,"
-    "Outline=2,Shadow=0,Alignment=2,MarginV=40"
+    "Outline=1,Shadow=0,Alignment=2,MarginV=30"
 )
 
 
