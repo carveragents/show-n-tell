@@ -14,7 +14,7 @@ import pytest
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent / "helpers"))
 
-from explore_page import derive_slug  # noqa: E402
+from explore_page import derive_slug, _sanitize_user_slug  # noqa: E402
 
 
 def test_root_path_slugs_as_home():
@@ -39,6 +39,14 @@ def test_trailing_slash_ignored():
 
 def test_dot_replaced_with_underscore():
     assert derive_slug("https://example.com/foo/bar.html") == "foo_bar_html"
+
+
+def test_user_slug_with_traversal_is_sanitized():
+    """Path-traversal characters in --slug are sanitized to keep outputs under out-dir."""
+    assert _sanitize_user_slug("../escape") == "escape"
+    assert _sanitize_user_slug("/etc/passwd") == "etc_passwd"
+    assert _sanitize_user_slug("normal-name_123") == "normal_name_123"
+    assert _sanitize_user_slug("../") == "home"  # empty after sanitize → home
 
 
 def test_missing_storage_state_exits_with_actionable_error(tmp_path):

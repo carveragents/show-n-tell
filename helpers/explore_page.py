@@ -47,6 +47,14 @@ def derive_slug(url: str) -> str:
     return slug or "home"
 
 
+def _sanitize_user_slug(slug: str) -> str:
+    """Apply derive_slug's character class to a user-supplied slug.
+
+    Prevents path-traversal via `--slug ../escape` or `--slug /etc/passwd`.
+    """
+    return re.sub(r"[^a-zA-Z0-9]+", "_", slug).strip("_").lower() or "home"
+
+
 def parse_viewport(spec: str) -> dict:
     try:
         w, h = spec.split("x")
@@ -78,7 +86,7 @@ def main():
     viewport = parse_viewport(args.viewport)
     out_dir = Path(args.out_dir).expanduser().resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
-    slug = args.slug or derive_slug(args.url)
+    slug = _sanitize_user_slug(args.slug) if args.slug else derive_slug(args.url)
 
     # cmux NODE_OPTIONS workaround — same as record_demo.py
     os.environ.pop("NODE_OPTIONS", None)
@@ -88,33 +96,33 @@ def main():
 
     with sync_playwright() as pw:
         browser = pw.chromium.launch(headless=True)
-        context = browser.new_context(viewport=viewport, storage_state=str(state_path))
-        page = context.new_page()
         try:
-            response = page.goto(args.url, wait_until="networkidle", timeout=60_000)
-        except Exception as e:
+            context = browser.new_context(viewport=viewport, storage_state=str(state_path))
+            page = context.new_page()
+            try:
+                response = page.goto(args.url, wait_until="networkidle", timeout=60_000)
+            except Exception as e:
+                sys.exit(f"\n✗ Could not load {args.url!r}: {e}")
+
+            status = response.status if response is not None else None
+            final_url = page.url
+            title = page.title()
+            dom = page.content()
+
+            png_path = out_dir / f"{slug}.png"
+            dom_path = out_dir / f"{slug}.dom.html"
+            meta_path = out_dir / f"{slug}.meta.json"
+
+            page.screenshot(path=str(png_path), full_page=False)
+            dom_path.write_text(dom)
+            meta_path.write_text(json.dumps({
+                "url_requested": args.url,
+                "final_url": final_url,
+                "title": title,
+                "status": status,
+            }, indent=2))
+        finally:
             browser.close()
-            sys.exit(f"\n✗ Could not load {args.url!r}: {e}")
-
-        status = response.status if response is not None else None
-        final_url = page.url
-        title = page.title()
-        dom = page.content()
-
-        png_path = out_dir / f"{slug}.png"
-        dom_path = out_dir / f"{slug}.dom.html"
-        meta_path = out_dir / f"{slug}.meta.json"
-
-        page.screenshot(path=str(png_path), full_page=False)
-        dom_path.write_text(dom)
-        meta_path.write_text(json.dumps({
-            "url_requested": args.url,
-            "final_url": final_url,
-            "title": title,
-            "status": status,
-        }, indent=2))
-
-        browser.close()
 
     print(f"✓ {slug}.png  {slug}.dom.html  {slug}.meta.json  in  {out_dir}", file=sys.stderr)
 
