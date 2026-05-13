@@ -304,6 +304,29 @@ Also: `_sanitize_action_for_logging()` must mask the resolved `value` field of a
 
 **Workaround:** `scripts/finalize_video.py` probes each segment's duration via `ffprobe` and refuses to run if `crossfade_seconds >= min(durations)`. The error message names the offending segment duration. Also: crossfading shortens the final video by `(N-1) * crossfade_seconds`, so a 0.5s dissolve across 3 segments removes 1 second from the total.
 
+## 24. Google OAuth blocks Playwright's bundled Chromium
+
+**Symptom:** During Phase 2a `capture_auth.py`, Google's sign-in page shows **"Couldn't sign you in — This browser or app may not be secure"** with only a "Try again" button. Login is impossible.
+
+**Cause:** Google's OAuth flow detects automated browsers via multiple signals — Playwright's `--enable-automation` CLI flag, the `navigator.webdriver` JS property, and the fact that Playwright ships its own Chromium build. Any of these is enough for Google to refuse sign-in. This is by design on Google's side, intended to block credential stuffing.
+
+**Workaround:** `helpers/capture_auth.py` launches the user's installed Chrome (`channel="chrome"`) rather than Playwright's bundled Chromium, and strips both automation signals:
+
+```python
+pw.chromium.launch(
+    headless=False,
+    channel="chrome",
+    args=["--disable-blink-features=AutomationControlled"],
+    ignore_default_args=["--enable-automation"],
+)
+```
+
+The combination of real Chrome binary + suppressed automation flags passes Google's check. If Chrome isn't installed (rare on macOS, more common on Linux/CI), the script exits with an actionable message pointing the user at https://www.google.com/chrome/.
+
+**Not applicable to:** `scripts/record_demo.py` (recording uses the captured cookies — no fresh Google login at record time, so Google's check doesn't fire) and `helpers/explore_page.py` (visits authenticated pages on the demo target, not Google itself). Only `capture_auth.py` needs the real-Chrome launch.
+
+**If a future OAuth provider (Microsoft, Okta) shows the same block:** apply the same recipe. The provider-agnostic fix is "stop looking automated."
+
 ## 25. BG music files need -16 LUFS normalization
 
 **Symptom:** A user-provided `bg_music_path` either drowns out narration or is so quiet you can barely hear it, depending on the source file's loudness.

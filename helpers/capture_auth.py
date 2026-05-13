@@ -61,7 +61,22 @@ def main():
           file=sys.stderr)
 
     with sync_playwright() as pw:
-        browser = pw.chromium.launch(headless=False)
+        # Use the user's installed Chrome (channel="chrome") rather than Playwright's
+        # bundled Chromium, and strip the automation flags that Google's OAuth flow
+        # uses to refuse sign-in. See docs/GOTCHAS.md #24.
+        try:
+            browser = pw.chromium.launch(
+                headless=False,
+                channel="chrome",
+                args=["--disable-blink-features=AutomationControlled"],
+                ignore_default_args=["--enable-automation"],
+            )
+        except Exception as e:
+            sys.exit(
+                f"\n✗ Could not launch system Chrome: {e}\n"
+                f"  Install Google Chrome from https://www.google.com/chrome/ and re-run.\n"
+                f"  (Playwright's bundled Chromium is blocked by Google OAuth's anti-automation check.)"
+            )
         context = browser.new_context(viewport=viewport)
         page = context.new_page()
         try:
