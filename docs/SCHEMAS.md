@@ -194,6 +194,49 @@ Env vars referenced via `${NAME}` are resolved from the user's shell environment
 
 The pre-session runs once on the Playwright context before recording starts. The same context carries cookies / localStorage through all subsequent beats.
 
+### `session.storage_state` (Phase B+, for OAuth / SSO / magic-link auth)
+
+When the target site authenticates via OAuth, SSO, magic-link, or passkey
+— flows that can't be reliably scripted via `pre_session` — pre-capture an
+authenticated Playwright session and point the recorder at it.
+
+```yaml
+session:
+  storage_state: "./auth.json"   # path to a Playwright storage_state JSON
+  pre_session: []                # optional, runs AFTER storage_state loads
+```
+
+| Field | Required | Notes |
+|---|---|---|
+| `storage_state` | no | Path to a Playwright `storage_state.json`. Loaded via `browser.new_context(storage_state=...)` before pre_session. Relative paths resolve against `output.working_dir`. `~` is expanded. |
+
+**Capture flow.** Use the bundled helper to capture a session whose browser
+context matches the recorder's:
+
+```bash
+uv run helpers/capture_auth.py https://target.example.com/ --out ./auth.json
+```
+
+A headed Chromium opens, you log in interactively (handles OAuth, 2FA,
+captchas — anything), and when you close the window the helper writes
+`auth.json` with mode 0600. Add `session.storage_state: "./auth.json"` to
+your `demo_config.yaml` and you're done.
+
+**Re-capturing.** Sessions expire. When the demo starts recording you on a
+login page, re-run `capture_auth.py`.
+
+**Viewport match.** `capture_auth.py` defaults to viewport 1440x900 (the
+recorder default). If you customize `recording.viewport`, pass the same
+size via `--viewport WxH` — some sites invalidate sessions when the
+viewport changes.
+
+**Security.** `auth.json` contains live session tokens. Never commit it.
+The `examples/oauth-storage-state/` template includes a `.gitignore`.
+
+**Combining with `pre_session`.** When both are set, `storage_state` loads
+first into the context, then `pre_session` runs against that authenticated
+context — useful for "OAuth-auth then navigate to the dashboard" demos.
+
 ---
 
 ## Action grammar

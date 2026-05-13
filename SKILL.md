@@ -27,7 +27,10 @@ Ask one or two questions at a time, not all at once. Required:
 4. **Length target** — default 5 min.
 5. **Logo** — URL or path. If only text-only is available, flag the limitation but accept.
 6. **Brand colors** — primary (ink) + accent. If unspecified, infer from the logo with PIL.
-7. **Login?** — if yes, collect credential env-var names (NOT actual values) and the login URL/selectors. Tell the user to put the actual credentials in `<working_dir>/.env` themselves before running, never in chat. The recorder runs a `session.pre_session` block automatically to authenticate before recording begins.
+7. **Auth?** — does the site require login?
+   - **No** → proceed.
+   - **Yes, form-based** (site has its own email/password fields you control) → use `session.pre_session` in `demo_config.yaml`. Collect credential env-var names (NOT actual values) and the login URL/selectors. Tell the user to put the actual credentials in `<working_dir>/.env` themselves before running, never in chat. See `examples/login-flow/`.
+   - **Yes, OAuth / SSO / magic-link / passkey** (Google, Microsoft, Okta, etc.) → use `session.storage_state` and pre-capture an authenticated session with `helpers/capture_auth.py`. Tell the user to run capture_auth.py themselves before continuing. See `examples/oauth-storage-state/`.
 
 ## Phase 2 — Site exploration
 
