@@ -115,7 +115,7 @@ def _write_minimal_demo(wd: Path, base_url: str):
     )
 
 
-def _write_storage_state(wd: Path, host: str, port: int):
+def _write_storage_state(wd: Path, host: str):
     """Hand-craft a Playwright storage_state.json with the gating cookie."""
     state = {
         "cookies": [{
@@ -131,10 +131,10 @@ def _write_storage_state(wd: Path, host: str, port: int):
 
 def test_recorder_honors_storage_state(tmp_path, gated_server):
     base = gated_server  # e.g. http://127.0.0.1:54321
-    host, port = base.replace("http://", "").split(":")
+    host, _port = base.replace("http://", "").split(":")
     wd = tmp_path / "wd"
     _write_minimal_demo(wd, base)
-    _write_storage_state(wd, host, int(port))
+    _write_storage_state(wd, host)
 
     script = PROJECT / "scripts" / "record_demo.py"
     proc = subprocess.run(
