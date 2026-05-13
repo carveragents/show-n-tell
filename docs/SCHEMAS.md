@@ -141,6 +141,10 @@ audio:
   bg_music_mood: "warm"                     # Mode B — bundled library lookup
   bg_music_volume: 0.4                      # 0.0–1.0; baseline before ducking
                                             # (default 0.4)
+
+  # Advanced — only needed if a particular voice clashes with ducking:
+  # sidechain_threshold: 0.05   # 0.0–1.0; raise to duck less aggressively
+  # sidechain_ratio: 8          # compression ratio; lower = gentler duck
 ```
 
 **Mode A:** any path the user controls (absolute, `~`-prefixed, or relative to the working dir). Common formats: mp3, wav, m4a, flac.
@@ -156,7 +160,7 @@ audio:
 | `cinematic` | Dramatic, building | High-stakes pitches |
 | `tech` | Modern, electronic | B2B SaaS, dev tools |
 
-**Sidechain ducking:** music ducks down ~14dB when narration plays, releases over 400ms. Tuned for `cedar`/`marin` TTS voices. If a particular voice clashes (rare), override via `audio.sidechain_threshold` (default `0.05`) and `audio.sidechain_ratio` (default `8`).
+**Sidechain ducking:** music plays at `bg_music_volume` baseline (default `0.4`) and ducks down ~14dB when narration plays, releasing over 400ms. Tuned for `cedar`/`marin` TTS voices. If a particular voice clashes (rare), override via `audio.sidechain_threshold` (default `0.05`) and `audio.sidechain_ratio` (default `8`).
 
 Setting both `bg_music_path` and `bg_music_mood` is an error caught at Phase 5.
 

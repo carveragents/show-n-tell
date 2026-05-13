@@ -331,12 +331,12 @@ The combination of real Chrome binary + suppressed automation flags passes Googl
 
 **Symptom:** A user-provided `bg_music_path` either drowns out narration or is so quiet you can barely hear it, depending on the source file's loudness.
 
-**Cause:** Royalty-free music sites mix at wildly different loudness levels (anywhere from -22 LUFS for chill ambient to -8 LUFS for energetic pop). The `bg_music_volume=0.4` default and `sidechaincompress` params assume normalized inputs.
+**Cause:** Royalty-free music sites mix at wildly different loudness levels (typically -18 LUFS for chill ambient to -8 LUFS for energetic pop, and softer for un-mastered or field-recording-style tracks). The `bg_music_volume=0.4` default and `sidechaincompress` params assume normalized inputs.
 
-**Workaround:** The six bundled library tracks are normalized to -16 LUFS at curation time using `ffmpeg-normalize`. If a user supplies their own track via `bg_music_path` and the mix sounds off:
+**Workaround (preferred):** Normalize the file to -16 LUFS before pointing `bg_music_path` at it. The six bundled library tracks are normalized this way at curation time:
 
 ```bash
-uvx ffmpeg-normalize input.mp3 -o normalized.mp3 -t -16 --audio-codec libmp3lame
+uvx ffmpeg-normalize input.mp3 -o normalized.mp3 -t -16 --audio-codec libmp3lame -b:a 192k
 ```
 
-Or tune `bg_music_volume` empirically (0.2–0.7 range typical).
+**Workaround (fallback):** If you'd rather not normalize, tune `bg_music_volume` empirically — the typical working range for non-normalized files is 0.2–0.7.
