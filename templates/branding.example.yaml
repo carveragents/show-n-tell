@@ -33,6 +33,12 @@ voice:
     A-P-I and K-Y-B as letter-by-letter readings. Leave natural breaths
     between sentences.
 
+# Burned caption style. Only font_size is exposed; Outline=1 and MarginV=30
+# are sane defaults. FontSize is in libass units against a default PlayResY
+# of 288 — on a 900-tall video, font_size N renders ~N * 3.1 px tall.
+# captions:
+#   font_size: 10      # default; ~31px on a 900-tall video
+
 # Optional layout overrides (defaults shown):
 # overlay:
 #   badge:

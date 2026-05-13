@@ -20,6 +20,9 @@ colors:
   accent: "#bae424"       # ring border, waveform, pulse rings (lime)
   cream: "#fbf7f3"        # logo recolor
 
+captions:
+  font_size: 10           # libass units; renders ~31px on a 900-tall video
+
 voice:
   provider: openai
   model: "gpt-4o-mini-tts"

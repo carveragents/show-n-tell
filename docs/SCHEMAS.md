@@ -121,6 +121,17 @@ recording_css: |
   /* Leave empty if no site adaptation needed. */
 ```
 
+### Caption style (Phase B; only relevant if `features.captions.enabled` is true)
+
+```yaml
+captions:
+  font_size: 10           # libass units, default 10
+```
+
+`font_size` is in libass units against a default `PlayResY` of 288. On a 900-tall video the rendered text is roughly `font_size × 3.1` px. The default of 10 renders ~31px (~3.5% of the video height — typical professional subtitle size). Increase for emphasis (e.g. 14 → ~43px), decrease for a tighter look (e.g. 8 → ~25px).
+
+Outline width (1) and bottom margin (30) are not exposed — they're sane regardless of the chosen font size.
+
 ### Color rules
 
 - All four colors are required if a logo + dark badge is desired.

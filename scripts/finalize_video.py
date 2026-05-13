@@ -38,21 +38,27 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 from _lib import load_yaml, resolve_working_dir, ensure_dir
 
-# Subtle white-on-dark caption style; bottom-center with a small margin.
-# Alignment=2 = bottom-center in libass.
+# Defaults for the caption force_style. Branding.yaml's `captions.font_size`
+# overrides DEFAULT_CAPTION_FONT_SIZE. The other knobs are not exposed —
+# Outline=1 and MarginV=30 are sane regardless of font size.
 #
 # FontSize note: ffmpeg's subtitles filter converts SRT to ASS using a default
-# PlayResY of 288. Text scales by (video_height / 288), so FontSize=22 on a
-# 900-tall video renders ~69px — far too big. FontSize=10 lands at ~31px,
-# which is ~3.5% of the video height (typical professional subtitle size).
-CAPTION_FORCE_STYLE = (
-    "FontName=Helvetica,FontSize=10,"
-    "PrimaryColour=&Hffffff,OutlineColour=&H000000,"
-    "Outline=1,Shadow=0,Alignment=2,MarginV=30"
-)
+# PlayResY of 288. Text scales by (video_height / 288), so FontSize=10 on a
+# 900-tall video renders ~31px (~3.5% of video height, typical professional
+# subtitle size). Increase for emphasis, decrease for a denser look.
+DEFAULT_CAPTION_FONT_SIZE = 10
 
 
-def burn_captions(input_path: Path, srt_path: Path, output_path: Path, tmp_dir: Path) -> None:
+def _caption_force_style(font_size: int) -> str:
+    return (
+        f"FontName=Helvetica,FontSize={font_size},"
+        f"PrimaryColour=&Hffffff,OutlineColour=&H000000,"
+        f"Outline=1,Shadow=0,Alignment=2,MarginV=30"
+    )
+
+
+def burn_captions(input_path: Path, srt_path: Path, output_path: Path,
+                  tmp_dir: Path, font_size: int) -> None:
     """Re-encode video with subtitles=<srt> filter; audio is stream-copied.
 
     Homebrew's default `ffmpeg` formula omits libass; if subtitles filter
@@ -77,7 +83,7 @@ def burn_captions(input_path: Path, srt_path: Path, output_path: Path, tmp_dir: 
         )
     local_srt = tmp_dir / "captions.srt"
     shutil.copy(srt_path, local_srt)
-    style = CAPTION_FORCE_STYLE.replace(",", r"\,")
+    style = _caption_force_style(font_size).replace(",", r"\,")
     vf = f"subtitles=filename={local_srt.name}:force_style={style}"
     cmd = [
         "ffmpeg", "-y",
@@ -129,6 +135,7 @@ def main():
 
     wd = resolve_working_dir(args.working_dir)
     demo_config = load_yaml(wd / "demo_config.yaml")
+    branding = load_yaml(wd / "branding.yaml")
     features = demo_config.get("features", {}) or {}
     want_intro = bool(features.get("intro_slide", False))
     want_outro = bool(features.get("outro_slide", False))
@@ -142,6 +149,11 @@ def main():
             f"features.captions.mode must be 'burned' or 'srt-sidecar', "
             f"got {captions_mode!r}"
         )
+    # Caption styling lives in branding.yaml. Only font_size is exposed for
+    # now (Outline=1 and MarginV=30 are sane regardless).
+    caption_font_size = int(
+        (branding.get("captions", {}) or {}).get("font_size", DEFAULT_CAPTION_FONT_SIZE)
+    )
 
     input_path = Path(args.input).expanduser().resolve()
     output_path = Path(args.output).expanduser().resolve()
@@ -175,7 +187,7 @@ def main():
         # Step 1: optionally burn captions into a temp mid-segment.
         if captions_on and captions_mode == "burned":
             middle_path = tmp_dir / "input_with_captions.mp4"
-            burn_captions(input_path, srt_path, middle_path, tmp_dir)
+            burn_captions(input_path, srt_path, middle_path, tmp_dir, caption_font_size)
         else:
             middle_path = input_path
 
