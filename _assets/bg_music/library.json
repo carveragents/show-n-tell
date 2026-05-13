@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "moods": {
+    "upbeat":    ["upbeat_morning"],
+    "warm":      ["warm_acoustic_loop"],
+    "calm":      ["calm_ambient_piano"],
+    "playful":   ["playful_uke_strum"],
+    "cinematic": ["cinematic_build"],
+    "tech":      ["tech_modern_pulse"]
+  }
+}
