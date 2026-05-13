@@ -1,0 +1,34 @@
+# Per-demo config for OAuth-authenticated targets.
+# See ./README.md for the capture flow.
+
+site:
+  base_url: "https://target.example.com"
+
+session:
+  storage_state: "./auth.json"
+  # pre_session is optional and runs AFTER storage_state loads. Use it for
+  # post-login navigation:
+  # pre_session:
+  #   - { type: goto, url: "{{ base_url }}/dashboard" }
+  #   - { type: wait_for_url, contains: "/dashboard" }
+
+output:
+  filename: "oauth-demo.mp4"
+  working_dir: "."
+  speed_multiplier: 1.2
+  target_duration_seconds: 180
+
+features:
+  intro_slide: true
+  outro_slide: true
+  captions:
+    enabled: true
+    mode: "burned"
+  crossfade_seconds: 0.5
+  brand_overlay: true
+
+recording:
+  viewport: { width: 1440, height: 900 }
+  framerate: 25
+  pre_narration_ms: 400
+  post_narration_ms: 700

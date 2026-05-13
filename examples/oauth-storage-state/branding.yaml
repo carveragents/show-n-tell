@@ -1,0 +1,28 @@
+# Replace with your brand. See templates/branding.example.yaml for all fields.
+
+brand:
+  name: "Your Brand"
+  tagline: "Your tagline"
+  cta:
+    text: "Try it free"
+    url: "https://your-site.example.com"
+
+logo:
+  path: "./logo.png"   # drop a logo.png next to this file
+
+colors:
+  ink: "#101828"
+  ink_deep: "#0c1322"
+  accent: "#bae424"
+  cream: "#fbf7f3"
+
+voice:
+  provider: openai
+  model: "gpt-4o-mini-tts"
+  voice: cedar
+  tone: "explanatory"
+  instructions: |
+    Read calmly and clearly, like a confident product walkthrough narrator.
+    Pace around 140 words per minute.
+
+recording_css: ""

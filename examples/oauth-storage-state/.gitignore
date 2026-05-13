@@ -1,0 +1,5 @@
+auth.json
+*.mp4
+_intermediate/
+_voiceover/
+_assets/

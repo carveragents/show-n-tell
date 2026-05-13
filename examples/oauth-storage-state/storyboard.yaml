@@ -1,0 +1,17 @@
+# Placeholder storyboard. Replace with your real beats after capturing auth.json.
+
+beats:
+  - id: 01_landing
+    narration: |
+      We start on the authenticated dashboard, ready to walk through the
+      product.
+    action:
+      type: goto
+      url: "{{ base_url }}/"
+
+  - id: 02_feature
+    narration: |
+      Here's the main feature we want to highlight.
+    action:
+      type: goto
+      url: "{{ base_url }}/feature"
