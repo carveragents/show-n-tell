@@ -36,7 +36,12 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from _lib import load_yaml, resolve_working_dir, ensure_dir
+from _lib import (
+    load_yaml, resolve_working_dir, ensure_dir, resolve_bg_music_path,
+)
+
+# scripts/ → skill root
+SKILL_DIR = Path(__file__).parent.parent.resolve()
 
 # Defaults for the caption force_style. Branding.yaml's `captions.font_size`
 # overrides DEFAULT_CAPTION_FONT_SIZE. The other knobs are not exposed —
@@ -140,6 +145,75 @@ def _build_xfade_filter(durations: list[float], crossfade_seconds: float) -> str
     return ";".join(video_parts + audio_parts)
 
 
+def _bg_music_chain(
+    narration_label: str,
+    bg_input_index: int,
+    total_duration: float,
+    bg_volume: float,
+    sidechain_threshold: float,
+    sidechain_ratio: int,
+) -> tuple[str, str]:
+    """Return (filter_chain_segment, final_audio_label).
+
+    Takes the narration audio (already chained, label like `[a]`) and the
+    raw bg music input index. Returns a filter graph segment that:
+      1) loops the bg music to span the video
+      2) drops baseline volume
+      3) fades in over 1s, out over 2s
+      4) sidechain-ducks against the narration
+      5) mixes ducked music under narration
+
+    Caller appends this segment to the existing filter chain via `;`.
+    """
+    fade_out_start = max(0.0, total_duration - 2.0)
+    chain = (
+        f"[{bg_input_index}:a]aloop=loop=-1:size=2e9, volume={bg_volume}[bg_loud]"
+        f";[bg_loud]afade=t=in:st=0:d=1, afade=t=out:st={fade_out_start:.4f}:d=2[bg_faded]"
+        f";{narration_label}asplit=2[narr_out][narr_side]"
+        f";[bg_faded][narr_side]"
+        f"sidechaincompress=threshold={sidechain_threshold}:"
+        f"ratio={sidechain_ratio}:attack=20:release=400[bg_ducked]"
+        f";[narr_out][bg_ducked]amix=inputs=2:duration=first[final_audio]"
+    )
+    return chain, "[final_audio]"
+
+
+def _mix_bg_music_only(
+    input_path: Path,
+    output_path: Path,
+    bg_music_path: Path,
+    bg_volume: float,
+    sidechain_threshold: float,
+    sidechain_ratio: int,
+) -> None:
+    """Re-encode audio only (video stream-copied) to mix bg music under narration.
+
+    Used when intro/outro slides are disabled — bg music is the only reason
+    we need to touch the input. Video stays untouched (`-c:v copy`).
+    """
+    duration = video_duration_seconds(input_path)
+    chain, final_label = _bg_music_chain(
+        narration_label="[0:a]",
+        bg_input_index=1,
+        total_duration=duration,
+        bg_volume=bg_volume,
+        sidechain_threshold=sidechain_threshold,
+        sidechain_ratio=sidechain_ratio,
+    )
+    cmd = [
+        "ffmpeg", "-y",
+        "-i", str(input_path),
+        "-i", str(bg_music_path),
+        "-filter_complex", chain,
+        "-map", "0:v", "-map", final_label,
+        "-c:v", "copy",
+        "-c:a", "aac", "-b:a", "192k",
+        str(output_path),
+    ]
+    print(" ".join(cmd))
+    subprocess.run(cmd, check=True)
+
+
 def _validate_crossfade_seconds(value) -> float:
     """Normalize and validate features.crossfade_seconds. Returns the float.
 
@@ -162,18 +236,28 @@ def _validate_crossfade_seconds(value) -> float:
     return v
 
 
-def concat_segments(segments: list[Path], output_path: Path, tmp_dir: Path,
-                    crossfade_seconds: float) -> None:
-    """Concatenate segments into output_path.
-
-    If crossfade_seconds == 0, uses ffmpeg's concat demuxer with -c copy
-    (instant, no re-encode). If > 0, uses an xfade + acrossfade filter graph
-    (re-encodes, ~30-60s for a 5-minute video, but produces soft seams).
-    """
-    if crossfade_seconds == 0:
+def concat_segments(
+    segments: list[Path],
+    output_path: Path,
+    tmp_dir: Path,
+    crossfade_seconds: float,
+    bg_music_path: Path | None = None,
+    bg_volume: float = 0.4,
+    sidechain_threshold: float = 0.05,
+    sidechain_ratio: int = 8,
+) -> None:
+    """Concatenate segments. If bg_music_path is set, force the xfade path."""
+    if crossfade_seconds == 0 and not bg_music_path:
         _concat_copy(segments, output_path, tmp_dir)
     else:
-        _concat_xfade(segments, output_path, crossfade_seconds)
+        # bg_music forces re-encode; bump crossfade up from 0 if needed
+        effective_cf = crossfade_seconds if crossfade_seconds > 0 else 0.5
+        _concat_xfade(
+            segments, output_path, effective_cf,
+            bg_music_path=bg_music_path, bg_volume=bg_volume,
+            sidechain_threshold=sidechain_threshold,
+            sidechain_ratio=sidechain_ratio,
+        )
 
 
 def _concat_copy(segments: list[Path], output_path: Path, tmp_dir: Path) -> None:
@@ -195,22 +279,42 @@ def _concat_copy(segments: list[Path], output_path: Path, tmp_dir: Path) -> None
     subprocess.run(cmd, check=True)
 
 
-def _concat_xfade(segments: list[Path], output_path: Path,
-                  crossfade_seconds: float) -> None:
-    """Build a single ffmpeg -filter_complex call that chains xfade + acrossfade.
-
-    Probes each segment's duration via ffprobe, then constructs the filter
-    graph via `_build_xfade_filter`. Re-encodes with the same profile as
-    brand_video.py.
-    """
+def _concat_xfade(
+    segments: list[Path],
+    output_path: Path,
+    crossfade_seconds: float,
+    bg_music_path: Path | None = None,
+    bg_volume: float = 0.4,
+    sidechain_threshold: float = 0.05,
+    sidechain_ratio: int = 8,
+) -> None:
+    """Single ffmpeg call: xfade + acrossfade across segments, optional bg music."""
     durations = [video_duration_seconds(p) for p in segments]
     filter_graph = _build_xfade_filter(durations, crossfade_seconds)
+    audio_map = "[a]"
+
+    if bg_music_path:
+        # Total duration after crossfading
+        total_duration = sum(durations) - (len(segments) - 1) * crossfade_seconds
+        bg_input_idx = len(segments)
+        bg_segment, audio_map = _bg_music_chain(
+            narration_label="[a]",
+            bg_input_index=bg_input_idx,
+            total_duration=total_duration,
+            bg_volume=bg_volume,
+            sidechain_threshold=sidechain_threshold,
+            sidechain_ratio=sidechain_ratio,
+        )
+        filter_graph = filter_graph + ";" + bg_segment
+
     cmd = ["ffmpeg", "-y"]
     for seg in segments:
         cmd.extend(["-i", str(seg)])
+    if bg_music_path:
+        cmd.extend(["-i", str(bg_music_path)])
     cmd.extend([
         "-filter_complex", filter_graph,
-        "-map", "[v]", "-map", "[a]",
+        "-map", "[v]", "-map", audio_map,
         "-c:v", "libx264", "-preset", "medium", "-crf", "20",
         "-pix_fmt", "yuv420p",
         "-c:a", "aac", "-b:a", "192k",
@@ -229,6 +333,25 @@ def video_duration_seconds(path: Path) -> float:
     return float(result.stdout.strip())
 
 
+def _print_bg_music_attribution(bg_music_path: Path) -> None:
+    """Print attribution from <bg_music>.json if present. Silent for user-provided files without sidecars."""
+    import json
+    sidecar = bg_music_path.with_suffix(".json")
+    if not sidecar.exists():
+        return
+    try:
+        meta = json.loads(sidecar.read_text())
+    except (json.JSONDecodeError, OSError):
+        return
+    attribution = meta.get("attribution_text")
+    if attribution:
+        print(f"\nMusic: {attribution}")
+        license_name = meta.get("license")
+        license_url = meta.get("license_url")
+        if license_name and license_url:
+            print(f"       License: {license_name} ({license_url})")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--working-dir", required=True)
@@ -239,6 +362,11 @@ def main():
     wd = resolve_working_dir(args.working_dir)
     demo_config = load_yaml(wd / "demo_config.yaml")
     branding = load_yaml(wd / "branding.yaml")
+    bg_music_path = resolve_bg_music_path(branding, wd, SKILL_DIR)
+    audio_cfg = branding.get("audio") or {}
+    bg_volume = float(audio_cfg.get("bg_music_volume", 0.4))
+    sidechain_threshold = float(audio_cfg.get("sidechain_threshold", 0.05))
+    sidechain_ratio = int(audio_cfg.get("sidechain_ratio", 8))
     features = demo_config.get("features", {}) or {}
     want_intro = bool(features.get("intro_slide", False))
     want_outro = bool(features.get("outro_slide", False))
@@ -271,8 +399,17 @@ def main():
 
     # Default behavior: nothing to do → copy through.
     if not want_intro and not want_outro and not captions_on:
-        shutil.copy(input_path, output_path)
-        print(f"OK Finalized (pass-through): {output_path}")
+        if bg_music_path:
+            _mix_bg_music_only(
+                input_path, output_path, bg_music_path,
+                bg_volume, sidechain_threshold, sidechain_ratio,
+            )
+            print(f"OK Finalized (bg music only): {output_path}")
+        else:
+            shutil.copy(input_path, output_path)
+            print(f"OK Finalized (pass-through): {output_path}")
+        if bg_music_path:
+            _print_bg_music_attribution(bg_music_path)
         return
 
     intro_path = wd / "_intermediate" / "intro.mp4"
@@ -308,15 +445,31 @@ def main():
             segments.append(middle_path)
             if want_outro:
                 segments.append(outro_path)
-            concat_segments(segments, output_path, tmp_dir, crossfade_seconds)
+            concat_segments(
+                segments, output_path, tmp_dir, crossfade_seconds,
+                bg_music_path=bg_music_path,
+                bg_volume=bg_volume,
+                sidechain_threshold=sidechain_threshold,
+                sidechain_ratio=sidechain_ratio,
+            )
         elif middle_path == input_path:
-            # Captions-only with sidecar mode (no burn-in, no concat): copy through.
-            # NB: never move/rename the input — it's the user's branded.mp4.
-            shutil.copy(input_path, output_path)
+            # Captions sidecar + no concat: copy through (+ mix bg music if any).
+            if bg_music_path:
+                _mix_bg_music_only(
+                    input_path, output_path, bg_music_path,
+                    bg_volume, sidechain_threshold, sidechain_ratio,
+                )
+            else:
+                shutil.copy(input_path, output_path)
         else:
-            # Captions burned but no intro/outro: middle is the temp burned mp4.
-            # Copy (not move) since tmp_dir is removed in the finally block.
-            shutil.copy(str(middle_path), str(output_path))
+            # Captions burned + no intro/outro: middle is the temp burned mp4.
+            if bg_music_path:
+                _mix_bg_music_only(
+                    middle_path, output_path, bg_music_path,
+                    bg_volume, sidechain_threshold, sidechain_ratio,
+                )
+            else:
+                shutil.copy(str(middle_path), str(output_path))
 
         # Step 3: sidecar SRT (independent of burn-in path).
         if captions_on and captions_mode == "srt-sidecar":
@@ -331,6 +484,8 @@ def main():
         duration = video_duration_seconds(output_path)
         size_mb = output_path.stat().st_size / 1_048_576
         print(f"OK Finalized: {output_path} ({size_mb:.1f} MB, {duration:.1f}s)")
+        if bg_music_path:
+            _print_bg_music_attribution(bg_music_path)
     finally:
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
