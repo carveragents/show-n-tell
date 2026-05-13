@@ -150,6 +150,8 @@ If any beats need to show a PDF page (inline, not as a download dialog), declare
 
 Confirm `OPENAI_API_KEY` is available (in the user's shell env or in `<working_dir>/.env`). If missing, ask the user to set it before running TTS. If form-based login is required, confirm any credential env-var names declared in `session.pre_session` are also set in `<working_dir>/.env`. If OAuth login is required, confirm `auth.json` is already present in the working dir from Phase 2a — if it's missing, re-run Phase 2a's capture step.
 
+If `branding.yaml` declares an `audio:` block with a `bg_music_path` or `bg_music_mood`, the file will be validated at this phase: the path must exist (Mode A), or the mood must be one of the bundled set (`upbeat`, `warm`, `calm`, `playful`, `cinematic`, `tech`). Both fields set → error. Neither set → no bg music (back-compat default). See `docs/SCHEMAS.md` "Audio bed" section.
+
 ## Phase 6 — Generate assets (badge)
 
 ```bash
@@ -252,6 +254,7 @@ Report:
   - *Visual timing or selector change:* re-run from `record_demo.py` onward.
   - *Branding change (colors, logo):* re-run `make_overlay.py` → `brand_video.py` → `make_intro_outro.py` (if intro/outro on) → `finalize_video.py`.
   - *Intro/outro copy or captions toggle:* edit `branding.yaml` or `demo_config.yaml`, re-run `make_intro_outro.py` (and/or `make_captions.py`) → `finalize_video.py`.
+  - *Background music change (file path or mood):* edit `branding.yaml`'s `audio:` block, re-run `finalize_video.py`. No re-record, no re-TTS.
 
 ## Common things that go wrong
 

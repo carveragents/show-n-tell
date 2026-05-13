@@ -26,3 +26,12 @@ voice:
     Pace around 140 words per minute.
 
 recording_css: ""
+
+# Optional: background music under narration. Pick ONE of the two modes.
+#
+# audio:
+#   # Mode A — your own file:
+#   bg_music_path: "./_assets/my_track.mp3"
+#   # OR Mode B — bundled mood (upbeat / warm / calm / playful / cinematic / tech):
+#   bg_music_mood: "warm"
+#   bg_music_volume: 0.4
