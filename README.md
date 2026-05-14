@@ -1,7 +1,7 @@
 # 🎬 Show-N-Tell
 
 <p align="center">
-  <img width="600" alt="Screenshot 2026-05-14 at 7 04 29 PM" src="https://github.com/user-attachments/assets/1881b371-a165-4a11-b64d-f73ffecc2d61" />
+  <img width="800" alt="snt" src="https://github.com/user-attachments/assets/2a819560-fd7e-458f-b990-fe657d6e654d" />
 </p>
 
 **Turn your product or website into a narrated, branded demo video in under 20 minutes.**
