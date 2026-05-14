@@ -10,15 +10,24 @@ The output looks like a polished Loom-style product walkthrough — but faster t
 
 ## 🧰 What you'll need before starting
 
-| | What | How to get it |
-|---|---|---|
-| 1. | **Claude Code** | https://claude.com/claude-code |
-| 2. | **Homebrew** (Mac) | https://brew.sh |
-| 3. | **`ffmpeg-full`** | `brew install ffmpeg-full` (the basic `ffmpeg` works, but `ffmpeg-full` includes caption rendering) |
-| 4. | **`uv`** (Python runner) | `brew install uv` |
-| 5. | **An OpenAI API key** | https://platform.openai.com/api-keys — for the AI narration voice; ~$0.10 per demo |
-| 6. | **Google Chrome** (only if your site uses login) | https://www.google.com/chrome — needed for sites with Google OAuth, Microsoft SSO, etc. |
-| 7. | **Your site's logo** | A `.png` file on your computer (or a public URL Claude can download) |
+You need a few one-time things on your machine. Most are platform-specific — pick the row that matches your OS.
+
+| | What | macOS | Linux | Windows |
+|---|---|---|---|---|
+| 1. | **Claude Code** | https://claude.com/claude-code | same | same |
+| 2. | **`ffmpeg`** (with `libass` for burned captions) | `brew install ffmpeg-full` (Homebrew's plain `ffmpeg` works for everything *except* burned-in captions; install `ffmpeg-full` if you want captions baked into the video, otherwise stick with the lean `ffmpeg`) | `sudo apt install ffmpeg` (Debian/Ubuntu); `sudo dnf install ffmpeg-free` (Fedora); `sudo pacman -S ffmpeg` (Arch). Most distros ship `ffmpeg` with `libass` already linked. | Download a static build from https://www.gyan.dev/ffmpeg/builds/ (pick "release essentials"). Unzip, add the `bin/` folder to `PATH`. Or via `winget install Gyan.FFmpeg` / `choco install ffmpeg`. |
+| 3. | **`uv`** (Python runner — pins a contained virtualenv, never touches your system Python) | `brew install uv` | `curl -LsSf https://astral.sh/uv/install.sh \| sh` | `powershell -c "irm https://astral.sh/uv/install.ps1 \| iex"` (or `winget install astral-sh.uv`) |
+| 4. | **An OpenAI API key** | https://platform.openai.com/api-keys — for the AI narration voice; ~$0.10 per demo | same | same |
+| 5. | **Google Chrome** (only if your site uses Google / Microsoft / SSO login) | https://www.google.com/chrome | same | same |
+| 6. | **Your site's logo** | A `.png` file on your computer (or a public URL Claude can download) | same | same |
+
+Confirm the prereqs are visible to your shell:
+
+```bash
+ffmpeg -version
+ffprobe -version
+uv --version
+```
 
 If you've never run Claude Code before: install it, sign in, then open a terminal in any folder and type `claude`. That starts the conversation interface.
 
@@ -26,16 +35,33 @@ If you've never run Claude Code before: install it, sign in, then open a termina
 
 ## 📦 Installing the skill
 
-Once Claude Code is running, install this skill into your global skills folder:
+Claude Code looks for user-global skills in `~/.claude/skills/` on macOS/Linux and `%USERPROFILE%\.claude\skills\` on Windows. Drop this repo there:
+
+**macOS / Linux:**
 
 ```bash
-git clone https://github.com/<your-org>/demo-video-from-site \
+git clone https://github.com/carveragents/demo-video-from-site \
   ~/.claude/skills/demo-video-from-site
+cd ~/.claude/skills/demo-video-from-site
+uv sync                    # one-time: creates a contained .venv with all deps
+uv run playwright install chromium   # one-time: ~150MB browser download
 ```
 
-That's the whole installation. The skill is now available across every Claude Code session, anywhere on your machine. You don't need to "activate" it — just describe what you want and Claude will pick it up.
+**Windows (PowerShell):**
 
-The first time you make a demo for a logged-in site, you'll be prompted to run `playwright install chromium` (one command, one minute). Claude Code will tell you exactly when.
+```powershell
+git clone https://github.com/carveragents/demo-video-from-site `
+  "$env:USERPROFILE\.claude\skills\demo-video-from-site"
+cd "$env:USERPROFILE\.claude\skills\demo-video-from-site"
+uv sync
+uv run playwright install chromium
+```
+
+That's the whole installation. The skill is now available across every Claude Code session, anywhere on your machine — you don't need to "activate" it, just describe what you want and Claude will pick it up.
+
+**About the virtualenv:** every Python dependency the skill needs (Playwright, the OpenAI SDK, Pillow, etc.) installs into a `.venv/` *inside* this folder. Nothing leaks into your system Python, and nothing depends on which Python you happen to have on `PATH`. `uv` reads `pyproject.toml`, picks a compatible Python, downloads it if missing, and pins everything. You can blow away the skill with a single `rm -rf` and your machine is left exactly as it was before.
+
+If you'd rather skip the project venv and run each script in its own ephemeral env, every script in `scripts/` and `helpers/` carries a PEP 723 inline-dependency header — `uv run scripts/foo.py …` works without `uv sync`. The two workflows are interchangeable; `uv sync` is just faster across many runs because the env is reused.
 
 ---
 
@@ -175,38 +201,25 @@ But for most users: just talk to Claude Code. It runs these for you in the right
 
 ---
 
-## 🌿 Contributing & repo layout (developers only)
+## 🌿 Contributing
 
-This skill is checked into **`carveragents/demo-video-from-site`** and is also referenced as a submodule by the umbrella **`carveragents/carver-tools`** repo at `skills/demo-video-from-site`.
+PRs and issues welcome at https://github.com/carveragents/demo-video-from-site.
 
-The recommended local layout:
+Local development is the install above plus the dev group:
 
+```bash
+git clone https://github.com/carveragents/demo-video-from-site \
+  ~/.claude/skills/demo-video-from-site
+cd ~/.claude/skills/demo-video-from-site
+uv sync --group dev          # adds pytest
+uv run playwright install chromium
+uv run pytest                # unit + integration tests
 ```
-~/work/scribble/code/repos/carver/carver-tools/         # umbrella, clone of carver-tools
-  └── skills/
-      └── demo-video-from-site/                         # submodule = this repo
-                                                        # ← edit here
 
-~/.claude/skills/demo-video-from-site → (symlink) ──→ the path above
-```
+Because the skill folder *is* the install target, edits you make here are picked up by Claude Code immediately — no copy step, no "deploy."
 
-The symlink is what Claude Code's skill loader sees. Working through it dereferences to the submodule checkout, so commits go to the right repo automatically.
+Agent-facing notes for working on this repo (read order, design decisions, hard rules) live in `CLAUDE.md`.
 
-**To make a change:**
-1. Edit files (from either the `~/.claude/...` symlink or the submodule path — same files).
-2. Test locally.
-3. Commit and push from inside the skill:
-   ```bash
-   cd ~/.claude/skills/demo-video-from-site
-   git commit -am "feat: ..."
-   git push                  # → carveragents/demo-video-from-site
-   ```
-4. If `carver-tools` consumers should pick up the change, bump the pin:
-   ```bash
-   cd ~/work/scribble/code/repos/carver/carver-tools
-   git add skills/demo-video-from-site
-   git commit -m "bump: demo-video-from-site to <short-sha>"
-   git push                  # → carveragents/carver-tools
-   ```
+## 📜 License
 
-Full agent-facing notes (including pull/update behavior and common pitfalls) are in `CLAUDE.md` under **Git topology — read before pushing**.
+MIT — see `LICENSE`. The bundled background-music tracks under `_assets/bg_music/` are royalty-free works under separate licenses; see each track's sidecar JSON for attribution and license terms.

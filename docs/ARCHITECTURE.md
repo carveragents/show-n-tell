@@ -3,16 +3,13 @@
 ```
 ~/.claude/skills/demo-video-from-site/
 ├── SKILL.md                          # Claude's entry point — see SKILL-MD-OUTLINE.md
-├── docs/                             # (already exists — these planning files)
-│   ├── PLAN.md
+├── docs/                             # design + reference material (shipped with the skill)
 │   ├── CONTEXT.md
-│   ├── REFERENCE.md
 │   ├── DESIGN-DECISIONS.md
 │   ├── ARCHITECTURE.md               ← you are here
 │   ├── SCHEMAS.md
 │   ├── SKILL-MD-OUTLINE.md
-│   ├── GOTCHAS.md
-│   └── PHASE-A-TASKS.md
+│   └── GOTCHAS.md
 ├── scripts/                          # Phase A
 │   ├── render_voiceover.py           # storyboard YAML → wavs + manifest
 │   ├── record_demo.py                # Playwright recorder + action interpreter

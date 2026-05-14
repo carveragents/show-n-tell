@@ -455,8 +455,8 @@ Run finalize against the existing Phase B working-dir using the updated `example
 - [ ] **Step 1: Set up a fresh working dir from the updated example.**
 
 ```bash
-WD=/Users/achintthomas/work/scribble/misc/demo-videos/halyard-crossfade-test
-PHASE_B_WD=/Users/achintthomas/work/scribble/misc/demo-videos/halyard-spme-phaseb-test
+WD=~/demo-videos/halyard-crossfade-test
+PHASE_B_WD=~/demo-videos/halyard-spme-phaseb-test
 
 mkdir -p "$WD/_assets" "$WD/_intermediate" "$WD/_voiceover"
 cp examples/halyard-spme/storyboard.yaml "$WD/"
@@ -595,12 +595,12 @@ After Task 7, run a quick smoke against the canonical example to confirm nothing
 
 ```bash
 # From the repo root, with the dist server running on :8080 if needed:
-WD=/Users/achintthomas/work/scribble/misc/demo-videos/halyard-crossfade-final
+WD=~/demo-videos/halyard-crossfade-final
 mkdir -p "$WD/_assets"
 cp examples/halyard-spme/*.yaml "$WD/"
 cp examples/halyard-spme/_assets/carver_wordmark.png "$WD/_assets/"
-cp /Users/achintthomas/work/scribble/misc/demo-videos/.env "$WD/.env"
-cp -r /Users/achintthomas/work/scribble/misc/demo-videos/halyard-spme-test/_voiceover "$WD/"
+cp ~/demo-videos/.env "$WD/.env"
+cp -r ~/demo-videos/halyard-spme-test/_voiceover "$WD/"
 
 uv run scripts/make_overlay.py     --working-dir "$WD"
 uv run scripts/render_voiceover.py --working-dir "$WD"

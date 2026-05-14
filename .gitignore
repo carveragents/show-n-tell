@@ -6,6 +6,11 @@ __pycache__/
 *.pyc
 *.pyo
 .pytest_cache/
+.venv/
+uv.lock
+
+# Per-user Claude Code settings (never commit)
+.claude/
 
 # Editors
 .vscode/

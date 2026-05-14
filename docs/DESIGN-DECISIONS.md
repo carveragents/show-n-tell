@@ -28,11 +28,11 @@ The skill must support all four:
 
 Each is independently toggleable in `demo_config.yaml`.
 
-## 4. Code extraction: extract clean copies, skill evolves separately
+## 4. The skill is self-contained
 
-Do **not** import scripts from the policy-diffs repo at runtime. Copy and parameterize them into the skill folder. After extraction, the skill and the policy-diffs repo evolve independently.
+Never import code from sibling projects at runtime. Every script and asset the pipeline needs lives in this repo. A fresh `git clone` plus `uv sync` is the entire install; nothing implicit.
 
-This means the skill is self-contained and portable — could be a separate git repo later, no dependency on the source project.
+This is why the skill stays portable — it can ship as its own repo, no dependency on whatever project the original demo was built from.
 
 ## 5. Login flows: must be supported (Phase B)
 

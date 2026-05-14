@@ -1,0 +1,36 @@
+[project]
+name = "demo-video-from-site"
+version = "0.1.0"
+description = "Claude Code skill: produce narrated, branded demo videos of any website."
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.10"
+
+# Single source of truth for runtime deps across every script in scripts/ and
+# helpers/. Each script also keeps a PEP 723 (`# /// script`) header listing
+# its own subset of these, so individual scripts can still be invoked as
+# `uv run scripts/foo.py` without a project venv. Use `uv sync` once to create
+# a shared .venv with everything pinned together, then drive scripts with
+# `uv run --project <skill-root> scripts/foo.py` (recommended) or call the
+# venv's python directly.
+dependencies = [
+    "pyyaml>=6.0",
+    "pillow>=10.0",
+    "playwright>=1.45",
+    "openai>=1.40",
+    "python-dotenv>=1.0",
+    "pydub>=0.25",
+    "pymupdf>=1.24",
+    "jinja2>=3.1",
+    # pydub uses the stdlib `audioop` module, which was removed in 3.13. The
+    # backport package restores it; it's a no-op on 3.10–3.12.
+    "audioop-lts; python_version >= '3.13'",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+]
+
+[tool.uv]
+package = false

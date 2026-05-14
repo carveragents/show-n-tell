@@ -2,11 +2,9 @@
 
 ## The origin demo
 
-The user (a product engineer at Scribble building Carver Agents — an AI agent platform for compliance/risk at payment processors) was running a Phase 1 POC: an AI pipeline that detects changes between consecutive Mastercard SPME publications, classifies their materiality, and proposes corresponding updates to a hypothetical processor's internal compliance policies ("Halyard Pay" — fictional, synthetic baseline).
+The pipeline started life as a bespoke build for a single real product — a Carver Agents POC that detects changes between consecutive regulator publications, classifies their materiality, and proposes corresponding updates to a customer's internal compliance policies. That POC shipped as a static site; the team wanted a narrated walkthrough for external prospects, and the result was the original `demo-video.mp4` (~5:09, h264 + AAC).
 
-The POC ships as a static site (`credio-policies/dist/`) that lets reviewers browse the changes interactively. The user wanted a self-contained narrated video walkthrough for external prospects.
-
-Over the course of one session we built, end-to-end:
+Over one focused build session, the team produced end-to-end:
 
 1. A 28-beat storyboard with hand-crafted narration aligned to specific scroll positions and visual moments
 2. A Playwright-based recording pipeline that times every camera action precisely
@@ -14,11 +12,11 @@ Over the course of one session we built, end-to-end:
 4. An audio/video mux pipeline that locks audio to video using per-beat measured action times
 5. A 1.2x speed-up post-process to land at 5 min
 6. A Loom-style branded overlay with:
-   - Bottom-left circular badge containing the actual Carver Agents wordmark (downloaded from carveragents.ai)
+   - Bottom-left circular badge containing the brand wordmark (the original demo used the Carver Agents mark, downloaded from carveragents.ai and recolored to cream)
    - Dark ink radial gradient background, lime ring border, halo glow, two phase-staggered pulse rings
    - Audio-reactive lime waveform below the badge driven by ffmpeg's `showwaves` filter
 
-The final video is at `~/work/scribble/code/repos/carver/policy-diffs/credio-policies/dist/demo-video.mp4` — 5:09, 28.8 MB, h264 + AAC.
+The frozen storyboard, branding, and demo_config for that reference build live in `examples/halyard-spme/`; running the skill against those inputs reproduces a video qualitatively identical to the original.
 
 ## Why turn this into a skill
 
@@ -53,7 +51,7 @@ Loom is a screen-recording tool that overlays a small circular webcam bubble in 
 
 ## What "good output" looks like
 
-The Halyard Pay demo at the path above is the gold standard. Specifically:
+The Halyard Pay reference example (`examples/halyard-spme/`) is the gold standard. Specifically:
 
 - Bottom-left brand badge persistent through every frame
 - Section headers always visible during diff content scrolls
