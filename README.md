@@ -41,6 +41,8 @@ uv --version
 
 If you've never run Claude Code before: install it, sign in, then open a terminal in any folder and type `claude`. That starts the conversation interface.
 
+> 💡 **Don't want to do this by hand?** Once Claude Code is running, paste the URL of this README into the chat and say *"install this skill on my machine."* Claude will read the install steps, detect your OS, run the right commands, and check in with you for anything it can't do on its own (like signing into your OpenAI account).
+
 ---
 
 ## 📦 Installing the skill
