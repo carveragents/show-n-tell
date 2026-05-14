@@ -1,0 +1,21 @@
+{
+  "name": "show-n-tell",
+  "version": "0.1.0",
+  "description": "Turn any website into a narrated, branded demo video. Walks the site, drafts a storyboard for plain-English review, generates TTS narration, records the screen, and ships a polished mp4 with logo, captions, and optional background music.",
+  "author": {
+    "name": "Carver Agents",
+    "url": "https://github.com/carveragents"
+  },
+  "homepage": "https://github.com/carveragents/show-n-tell",
+  "repository": "https://github.com/carveragents/show-n-tell",
+  "license": "MIT",
+  "keywords": [
+    "demo",
+    "video",
+    "screencast",
+    "walkthrough",
+    "narration",
+    "tts",
+    "playwright"
+  ]
+}

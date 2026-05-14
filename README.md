@@ -10,8 +10,8 @@ The output looks like a polished Loom-style product walkthrough — but faster t
 
 ## 💻 Where you can run this
 
-- **Claude Code** (CLI) — install once on your own machine, runs locally. The setup steps below cover this path.
-- **Claude Cowork** — works in a Cowork workspace too. Cowork provides the runtime (ffmpeg, `uv`, browser) and the working directory; skip the local-setup section and just ask Claude in your Cowork session for a demo video.
+- **Claude Code** (CLI) — install once on your own machine, runs locally. See [Setup (for Claude Code CLI)](#-setup-for-claude-code-cli).
+- **Claude Cowork** — install as a Cowork plugin. Cowork provides the runtime (ffmpeg, `uv`, browser) and the working directory. See [Installing in Cowork](#-installing-in-cowork).
 
 Same skill, same output in either environment — the differences are who runs the long-running scripts and where the files land.
 
@@ -19,7 +19,7 @@ Same skill, same output in either environment — the differences are who runs t
 
 ## 🧰 Setup (for Claude Code CLI)
 
-*Cowork users: skip this section — your workspace is already provisioned.*
+*Cowork users: skip ahead to [Installing in Cowork](#-installing-in-cowork) — your sandbox already has `ffmpeg`, `uv`, and a browser.*
 
 > 💡 **Don't want to do this by hand?** Once Claude Code is running, paste the URL of this README into the chat and say *"install this skill on my machine."* Claude will read the install steps, detect your OS, run the right commands, and check in with you for anything it can't do on its own (like signing into your OpenAI account).
 
@@ -58,7 +58,7 @@ If you've never run Claude Code before: install it, sign in, then open a termina
 
 ## 📦 Installing the skill (Claude Code)
 
-*Cowork users: your workspace provisions the skill — no install step on your machine.*
+*Cowork users: see [Installing in Cowork](#-installing-in-cowork) below instead.*
 
 Claude Code looks for user-global skills in `~/.claude/skills/` on macOS/Linux and `%USERPROFILE%\.claude\skills\` on Windows. Drop this repo there:
 
@@ -87,6 +87,33 @@ That's the whole installation. The skill is now available across every Claude Co
 **About the virtualenv:** every Python dependency the skill needs (Playwright, the OpenAI SDK, Pillow, etc.) installs into a `.venv/` *inside* this folder. Nothing leaks into your system Python, and nothing depends on which Python you happen to have on `PATH`. `uv` reads `pyproject.toml`, picks a compatible Python, downloads it if missing, and pins everything. You can blow away the skill with a single `rm -rf` and your machine is left exactly as it was before.
 
 If you'd rather skip the project venv and run each script in its own ephemeral env, every script in `scripts/` and `helpers/` carries a PEP 723 inline-dependency header — `uv run scripts/foo.py …` works without `uv sync`. The two workflows are interchangeable; `uv sync` is just faster across many runs because the env is reused.
+
+---
+
+## 📦 Installing in Cowork
+
+Cowork installs skills as **plugins**, not as folders under `~/.claude/skills/`. To get show-n-tell into a Cowork workspace, build the plugin file once and hand it to a Cowork session:
+
+```bash
+git clone https://github.com/carveragents/show-n-tell /tmp/show-n-tell
+bash /tmp/show-n-tell/tools/make-plugin.sh ~/Downloads
+```
+
+That writes `~/Downloads/show-n-tell.plugin` (about a few hundred KB — the scripts and docs, no `.venv` or browser engine). Open a Cowork chat, drop the `.plugin` file in, and press **Install** on the card that appears.
+
+Once installed, Cowork has everything: the `ffmpeg`, `uv`, and Chromium binaries live in the workspace sandbox. Just type *"create a demo video for [url]"* and the skill takes over — same prompts, same review loop, same output as the Claude Code path. Outputs land in the directory Cowork mounts via `request_cowork_directory`.
+
+**One-line refresher when the repo updates:**
+
+```bash
+(cd /tmp/show-n-tell && git pull) && bash /tmp/show-n-tell/tools/make-plugin.sh ~/Downloads
+```
+
+Then re-install in Cowork.
+
+**About the layout:** the repo's canonical files live at the root (so the Claude Code install above still works as-is). For Cowork, `skills/show-n-tell/` is a tree of symlinks back to those same files, and `.claude-plugin/plugin.json` declares the manifest. `tools/make-plugin.sh` zips the result with `-y` so symlinks are preserved in the `.plugin` file. One source of truth; two install paths.
+
+> **Cowork on Windows:** if you're cloning on Windows to build the plugin, set `git config --global core.symlinks true` first — otherwise symlinks check out as text files and the plugin won't work. Cowork on macOS/Linux is unaffected.
 
 ---
 
@@ -241,7 +268,9 @@ uv run playwright install chromium
 uv run pytest                # unit + integration tests
 ```
 
-Because the skill folder *is* the install target for Claude Code, edits you make here are picked up immediately — no copy step, no "deploy." (Cowork has its own skill ingestion; check your workspace docs for the update path.)
+Because the skill folder *is* the install target for Claude Code, edits you make here are picked up immediately — no copy step, no "deploy."
+
+For Cowork, rebuild and reinstall the plugin after you edit: `bash tools/make-plugin.sh ~/Downloads` writes `~/Downloads/show-n-tell.plugin`, then drop it into a Cowork chat to install. The plugin uses symlinks under `skills/show-n-tell/`, so edits to the canonical files (e.g. `SKILL.md`, anything under `scripts/`) are picked up on the next build — no duplication.
 
 Agent-facing notes for working on this repo (read order, design decisions, hard rules) live in `CLAUDE.md`.
 

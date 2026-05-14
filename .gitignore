@@ -22,3 +22,6 @@ uv.lock
 *.wav
 *.srt
 !_assets/bg_music/*.mp3
+
+# Build output from tools/make-plugin.sh
+*.plugin
