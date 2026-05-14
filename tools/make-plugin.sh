@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
 # Build show-n-tell.plugin — the Cowork-installable package.
 #
-# This zips the repo (preserving symlinks) so that `skills/show-n-tell/`
-# inside the plugin contains live links to the same scripts/, helpers/,
-# docs/, etc. that the Claude Code install uses. One source of truth,
-# two install paths.
+# This zips the repo and dereferences symlinks into real files — the
+# `skills/show-n-tell/` tree in the source repo points at scripts/,
+# helpers/, docs/, etc. via symlinks (one source of truth in the source
+# tree); the resulting plugin contains real copies so Cowork's validator,
+# which rejects symlinks that escape the skill directory, accepts it.
+# The plugin is larger as a result (content is duplicated rather than
+# linked) but that's a one-time install artifact, not a dev tree.
 #
 # Usage:
 #   bash tools/make-plugin.sh                       # writes to ./show-n-tell.plugin
@@ -29,9 +32,12 @@ TMP="$(mktemp -d)"
 STAGE="$TMP/show-n-tell.plugin"
 trap 'rm -rf "$TMP"' EXIT
 
-# `zip -y` preserves symlinks (stores them as symlinks rather than dereferencing).
+# No `-y` flag: zip follows symlinks and stores the dereferenced file
+# contents. Required because Cowork's validator rejects symlinks that
+# resolve outside the skill directory. The source repo keeps the
+# symlinks (single source of truth); the plugin gets real files.
 # Excludes: dev-only state that has no business in a distributed plugin.
-zip -ry "$STAGE" . \
+zip -r "$STAGE" . \
   -x '.git/*' \
   -x '.git' \
   -x '.gitignore' \

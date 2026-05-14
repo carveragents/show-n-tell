@@ -111,9 +111,9 @@ Once installed, Cowork has everything: the `ffmpeg`, `uv`, and Chromium binaries
 
 Then re-install in Cowork.
 
-**About the layout:** the repo's canonical files live at the root (so the Claude Code install above still works as-is). For Cowork, `skills/show-n-tell/` is a tree of symlinks back to those same files, and `.claude-plugin/plugin.json` declares the manifest. `tools/make-plugin.sh` zips the result with `-y` so symlinks are preserved in the `.plugin` file. One source of truth; two install paths.
+**About the layout:** the repo's canonical files live at the root (so the Claude Code install above still works as-is). For Cowork, `skills/show-n-tell/` is a tree of symlinks back to those same files, and `.claude-plugin/plugin.json` declares the manifest. `tools/make-plugin.sh` dereferences those symlinks at build time so the `.plugin` file contains real files (Cowork's validator rejects symlinks that escape the skill directory). The plugin is roughly twice the size as a result; the source repo keeps the single source of truth.
 
-> **Cowork on Windows:** if you're cloning on Windows to build the plugin, set `git config --global core.symlinks true` first — otherwise symlinks check out as text files and the plugin won't work. Cowork on macOS/Linux is unaffected.
+> **Cowork on Windows:** if you're cloning on Windows to build the plugin, set `git config --global core.symlinks true` first — otherwise symlinks check out as text files, and the build will either fail the `[ -L ... ]` sanity check or zip text-file stubs in place of the real content. Cowork on macOS/Linux is unaffected.
 
 ---
 
