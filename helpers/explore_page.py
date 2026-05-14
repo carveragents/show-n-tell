@@ -66,8 +66,9 @@ def parse_viewport(spec: str) -> dict:
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("url")
-    parser.add_argument("--storage-state", required=True,
-                        help="Path to Playwright storage_state JSON (from helpers/capture_auth.py)")
+    parser.add_argument("--storage-state", required=False, default=None,
+                        help="Path to Playwright storage_state JSON (from helpers/capture_auth.py). "
+                             "Omit for public pages that require no authentication.")
     parser.add_argument("--out-dir", required=True,
                         help="Directory to write <slug>.png / .dom.html / .meta.json into")
     parser.add_argument("--slug", default=None,
@@ -75,13 +76,16 @@ def main():
     parser.add_argument("--viewport", default="1440x900")
     args = parser.parse_args()
 
-    state_path = Path(args.storage_state).expanduser().resolve()
-    if not state_path.exists():
-        sys.exit(
-            f"\n✗ storage_state file not found: {state_path}\n"
-            f"  Capture it with: uv run helpers/capture_auth.py <start_url> "
-            f"--out {state_path}"
-        )
+    if args.storage_state is not None:
+        state_path = Path(args.storage_state).expanduser().resolve()
+        if not state_path.exists():
+            sys.exit(
+                f"\n✗ storage_state file not found: {state_path}\n"
+                f"  Capture it with: uv run helpers/capture_auth.py <start_url> "
+                f"--out {state_path}"
+            )
+    else:
+        state_path = None
 
     viewport = parse_viewport(args.viewport)
     out_dir = Path(args.out_dir).expanduser().resolve()
@@ -97,7 +101,10 @@ def main():
     with sync_playwright() as pw:
         browser = pw.chromium.launch(headless=True)
         try:
-            context = browser.new_context(viewport=viewport, storage_state=str(state_path))
+            ctx_kwargs = {"viewport": viewport}
+            if state_path is not None:
+                ctx_kwargs["storage_state"] = str(state_path)
+            context = browser.new_context(**ctx_kwargs)
             page = context.new_page()
             try:
                 response = page.goto(args.url, wait_until="networkidle", timeout=60_000)

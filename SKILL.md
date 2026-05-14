@@ -17,6 +17,25 @@ Reference docs in this folder: `docs/SCHEMAS.md` (YAML + action grammar), `docs/
 
 **Refuse to proceed if the user gives you neither intent notes nor a logo.** Generic demos with default branding are bad demos. Ask for guidance instead of silently producing a weak video.
 
+## Environment Detection (read before starting)
+
+Before doing anything, determine which environment Claude is running in:
+
+- **Cowork**: `mcp__cowork__list_artifacts` and `mcp__computer-use__screenshot` are available in Claude's tool list.
+- **Claude Code CLI**: those tools are absent.
+
+This matters because several phases behave differently between environments. Quick-reference:
+
+| Phase | Claude Code CLI | Cowork |
+|---|---|---|
+| Working dir (Phase 5) | `~/demo-videos/<slug>/` | `request_cowork_directory` outputs path |
+| Site exploration public (Phase 2b) | Playwright MCP tools | Chrome MCP tools or `explore_page.py` headless |
+| Auth capture OAuth (Phase 2a) | Run `capture_auth.py` via Bash | User runs `capture_auth.py` locally |
+| Long commands (Phases 7–9) | Run synchronously | nohup + poll (45s bash timeout) |
+| Handoff (Phase 11) | Report mp4 path | mp4 path + computer:// link |
+
+---
+
 ## Phase 1 — Interview (collect inputs)
 
 Ask one or two questions at a time, not all at once. Required:
@@ -53,6 +72,60 @@ The script writes `auth.json` with mode 0600 atomically. If the user takes longe
 
 If Playwright's Chromium isn't installed yet (fresh skill clone), the script surfaces an actionable error. Run `uv run --with playwright playwright install chromium` once.
 
+**If running in Claude Code CLI:** run `capture_auth.py` via Bash as described above.
+
+**If running in Cowork:** Claude handles this directly using computer-use and Chrome tools — the user only needs to log in when the browser opens. Steps:
+
+1. **Ensure a working directory path is known.** If Phase 5 hasn't run yet, call `mcp__cowork__request_cowork_directory` now to get the outputs path and set `<working_dir>` to `<outputs_path>/<demo-slug>/`.
+
+2. **Open Chrome on the user's desktop:**
+   ```
+   mcp__computer-use__open_application  →  "Google Chrome"  (or "Chrome")
+   ```
+
+3. **Navigate to the login URL.** Prefer the Chrome MCP if connected:
+   - Chrome extension available: `mcp__Claude_in_Chrome__navigate` to `<login_or_start_url>`
+   - Chrome extension not connected: use `mcp__computer-use__*` tools to click the address bar and type the URL
+
+4. **Tell the user to log in** — say in plain words:
+   > "Chrome is open at the login page. Please log in (handle any 2FA, SSO, etc.), then navigate to the page where recording should begin. Let me know when you're done."
+
+5. **Wait and watch.** Poll with `mcp__computer-use__screenshot` every ~15 seconds. Continue once the URL is no longer a login/auth page and a dashboard or app page is visible.
+
+6. **Extract the session state via JavaScript.** Run this snippet with `mcp__Claude_in_Chrome__javascript_tool`:
+   ```javascript
+   (() => {
+     const cookies = document.cookie.split(';').map(c => {
+       const [name, ...rest] = c.trim().split('=');
+       return { name: name.trim(), value: rest.join('='), domain: location.hostname,
+                path: '/', expires: -1, httpOnly: false, secure: location.protocol === 'https:',
+                sameSite: 'Lax' };
+     }).filter(c => c.name);
+     const ls = {};
+     for (let i = 0; i < localStorage.length; i++) {
+       const k = localStorage.key(i);
+       ls[k] = localStorage.getItem(k);
+     }
+     const ss = {};
+     for (let i = 0; i < sessionStorage.length; i++) {
+       const k = sessionStorage.key(i);
+       ss[k] = sessionStorage.getItem(k);
+     }
+     return JSON.stringify({
+       cookies,
+       origins: [{ origin: location.origin,
+                   localStorage: Object.entries(ls).map(([n,v]) => ({name:n,value:v})),
+                   sessionStorage: Object.entries(ss).map(([n,v]) => ({name:n,value:v})) }]
+     }, null, 2);
+   })()
+   ```
+
+7. **Write the result to `<working_dir>/auth.json`** using the Write tool. This is valid Playwright `storage_state` format — `helpers/explore_page.py` and `record_demo.py` both consume it via `browser.new_context(storage_state=...)`.
+
+8. **HttpOnly cookie caveat.** JavaScript cannot read HttpOnly cookies — they are intentionally invisible to `document.cookie`. If the site's session token is HttpOnly-only (common with older Rails/Django session cookies), the extracted state will be missing it. Tell the user:
+   > "Note: session cookies marked HttpOnly aren't accessible from JavaScript, so I may not have captured all auth tokens. The recording will try to use what was captured — if it hits a login wall during Phase 8, we can fall back to using `capture_auth.py` locally."
+   Then continue — many modern sites (Google, Microsoft, Okta) keep enough state in non-HttpOnly cookies or localStorage for Playwright to work.
+
 ## Phase 2b — Site exploration
 
 If Phase 2a ran (auth.json exists), use `helpers/explore_page.py` to view authenticated pages — the Playwright MCP can't load storage_state and would just see login walls. For non-auth demos, the Playwright MCP is fine and more interactive; use it as before.
@@ -73,6 +146,21 @@ This writes three files per page into `_explore/`: `<slug>.png` (screenshot), `<
 - `browser_navigate` to the target URL, then to 2–5 pages the user's intent mentions.
 - `browser_snapshot` or `browser_take_screenshot` to see each page's layout.
 - Use `browser_evaluate` to read DOM for stable selectors (prefer semantic over `nth-of-type` where possible).
+
+**If running in Claude Code CLI:** use `mcp__plugin_playwright_playwright__*` tools as described above.
+
+**If running in Cowork:** First ensure Chromium is available:
+```bash
+uv run --with playwright playwright install chromium
+```
+Then choose the best available method:
+- If `mcp__Claude_in_Chrome__navigate` is available (Chrome extension connected), use `mcp__Claude_in_Chrome__navigate` + `mcp__Claude_in_Chrome__read_page` to explore the site interactively.
+- Otherwise fall back to headless exploration:
+  ```bash
+  mkdir -p <working_dir>/_explore/
+  uv run helpers/explore_page.py <url> --out-dir <working_dir>/_explore/
+  ```
+  (No `--storage-state` needed for public pages — the argument is now optional.)
 
 Note for each significant page:
 
@@ -144,6 +232,10 @@ cp <logo_path>             ~/demo-videos/<demo-slug>/_assets/<logo>.png
 # write storyboard.yaml, branding.yaml, demo_config.yaml from your drafts
 ```
 
+**If running in Claude Code CLI:** use `~/demo-videos/<demo-slug>/` as shown above.
+
+**If running in Cowork:** call `mcp__cowork__request_cowork_directory` to obtain the user's outputs path. Set the working directory to `<outputs_path>/<demo-slug>/`. Use this path for ALL subsequent file writes in Phases 6–11 — store it now and keep it consistent throughout the session. Create the `_assets/` subdirectory under this path, not under `~/demo-videos/`.
+
 If the user doesn't have a logo file on disk and only has a URL, download it with `curl` and place it in `_assets/`.
 
 If any beats need to show a PDF page (inline, not as a download dialog), declare them at the top of `storyboard.yaml` under a `pdfs:` block — see `docs/SCHEMAS.md`. The pre-record step in `record_demo.py` invokes `helpers/pdf_wrapper.py` for each declared PDF automatically; you don't need to run the wrapper script yourself.
@@ -161,6 +253,27 @@ uv run scripts/make_overlay.py --working-dir ~/demo-videos/<demo-slug>
 Inspect `_assets/overlay_frames/frame_0000.png` to verify the badge renders correctly (logo visible, colors right). If wrong, fix `branding.yaml` and rerun.
 
 If `features.intro_slide` or `features.outro_slide` is enabled in `demo_config.yaml`, the intro/outro slide videos are generated by `scripts/make_intro_outro.py` **after** recording (Phase 9 below). Captions, if enabled, are generated by `scripts/make_captions.py` at the same stage. Don't run them here — they depend on timing data the recorder produces.
+
+## Phases 7–9 — Long-running command strategy
+
+**If running in Claude Code CLI:** all commands in Phases 7–9 run synchronously via Bash (existing behavior — no changes needed).
+
+**If running in Cowork:** the bash tool has a 45-second timeout. All long-running commands (TTS rendering, screen recording, all ffmpeg steps) MUST be run in the background using this pattern:
+
+```bash
+nohup uv run scripts/<script>.py [args] > <working_dir>/<script>.log 2>&1 &
+echo $! > <working_dir>/<script>.pid
+```
+
+Then poll every 30 seconds by running:
+```bash
+tail -5 <working_dir>/<script>.log
+```
+until you see the completion marker (`✓`) or an error. Before advancing to the next phase, verify that the expected output file exists.
+
+Also: before Phase 8 (screen recording) in Cowork, run `uv run --with playwright playwright install chromium` to ensure Chromium is installed in the sandbox.
+
+---
 
 ## Phase 7 — TTS generation
 
@@ -249,6 +362,15 @@ Report:
 
 - Final mp4 path, duration, size
 - Working-dir location for re-runs
+
+**If running in Cowork:** after reporting the path, provide a clickable link so the user can open the file directly:
+
+```
+[Open your demo video](computer://<absolute_path_to_mp4>)
+```
+
+Use the full absolute path from the Cowork outputs directory (e.g. `computer:///Users/yourname/demo-outputs/my-demo/demo.mp4`).
+
 - **How to iterate cheaply:**
   - *Narration tone change:* edit `storyboard.yaml`, re-run `render_voiceover.py` (diff-aware) → `mux` → `speed` → `brand` → (`make_captions.py` if captions are on) → `finalize_video.py`. No re-record needed.
   - *Visual timing or selector change:* re-run from `record_demo.py` onward.
