@@ -6,7 +6,7 @@
 
 ```yaml
 ---
-name: demo-video-from-site
+name: show-n-tell
 description: Use when the user wants to create a narrated, branded demo video walking through any website. Handles site exploration, storyboard drafting (with user review in plain English), TTS narration via OpenAI, Playwright recording, audio/video mux, speed adjustment, brand overlay, and optional intro/outro/captions. Produces a polished 5-minute mp4. Triggers on phrases like "create a demo video", "make a walkthrough video", "produce a narrated screencast", "demo my site/app".
 ---
 ```

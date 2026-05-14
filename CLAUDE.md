@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this repo is
 
-A Claude Code skill named **demo-video-from-site** that produces narrated, branded demo videos of any website. Open source, MIT-licensed. The canonical home is `https://github.com/carveragents/demo-video-from-site`.
+A Claude Code skill named **show-n-tell** that produces narrated, branded demo videos of any website. Open source, MIT-licensed. The canonical home is `https://github.com/carveragents/show-n-tell`.
 
-The skill is **user-global**: cloning it into `~/.claude/skills/demo-video-from-site/` (or `%USERPROFILE%\.claude\skills\demo-video-from-site\` on Windows) makes it available across every Claude Code session.
+The skill is **user-global**: cloning it into `~/.claude/skills/show-n-tell/` (or `%USERPROFILE%\.claude\skills\show-n-tell\` on Windows) makes it available across every Claude Code session.
 
 ## Status — read before doing anything
 

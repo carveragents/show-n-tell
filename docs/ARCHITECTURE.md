@@ -1,7 +1,7 @@
 # Target folder layout
 
 ```
-~/.claude/skills/demo-video-from-site/
+~/.claude/skills/show-n-tell/
 ├── SKILL.md                          # Claude's entry point — see SKILL-MD-OUTLINE.md
 ├── docs/                             # design + reference material (shipped with the skill)
 │   ├── CONTEXT.md

@@ -1,4 +1,4 @@
-# 🎬 demo-video-from-site
+# 🎬 show-n-tell
 
 **Turn any website into a narrated, branded demo video in under 20 minutes.**
 
@@ -52,9 +52,9 @@ Claude Code looks for user-global skills in `~/.claude/skills/` on macOS/Linux a
 **macOS / Linux:**
 
 ```bash
-git clone https://github.com/carveragents/demo-video-from-site \
-  ~/.claude/skills/demo-video-from-site
-cd ~/.claude/skills/demo-video-from-site
+git clone https://github.com/carveragents/show-n-tell \
+  ~/.claude/skills/show-n-tell
+cd ~/.claude/skills/show-n-tell
 uv sync                    # one-time: creates a contained .venv with all deps
 uv run playwright install chromium   # one-time: ~150MB browser download
 ```
@@ -62,9 +62,9 @@ uv run playwright install chromium   # one-time: ~150MB browser download
 **Windows (PowerShell):**
 
 ```powershell
-git clone https://github.com/carveragents/demo-video-from-site `
-  "$env:USERPROFILE\.claude\skills\demo-video-from-site"
-cd "$env:USERPROFILE\.claude\skills\demo-video-from-site"
+git clone https://github.com/carveragents/show-n-tell `
+  "$env:USERPROFILE\.claude\skills\show-n-tell"
+cd "$env:USERPROFILE\.claude\skills\show-n-tell"
 uv sync
 uv run playwright install chromium
 ```
@@ -215,14 +215,14 @@ But for most users: just talk to Claude Code. It runs these for you in the right
 
 ## 🌿 Contributing
 
-PRs and issues welcome at https://github.com/carveragents/demo-video-from-site.
+PRs and issues welcome at https://github.com/carveragents/show-n-tell.
 
 Local development is the install above plus the dev group:
 
 ```bash
-git clone https://github.com/carveragents/demo-video-from-site \
-  ~/.claude/skills/demo-video-from-site
-cd ~/.claude/skills/demo-video-from-site
+git clone https://github.com/carveragents/show-n-tell \
+  ~/.claude/skills/show-n-tell
+cd ~/.claude/skills/show-n-tell
 uv sync --group dev          # adds pytest
 uv run playwright install chromium
 uv run pytest                # unit + integration tests

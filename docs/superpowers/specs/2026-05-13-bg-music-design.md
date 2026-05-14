@@ -45,7 +45,7 @@ Validation: if both `bg_music_path` AND `bg_music_mood` are set → error at Pha
 Library lives **inside the skill folder**, not the working dir:
 
 ```
-~/.claude/skills/demo-video-from-site/_assets/bg_music/
+~/.claude/skills/show-n-tell/_assets/bg_music/
 ├── library.json                   # mood → [track_ids] index
 ├── upbeat_morning.mp3             # ~3-5 min loopable track
 ├── upbeat_morning.json            # metadata + attribution

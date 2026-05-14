@@ -12,7 +12,7 @@ Claude is the technical author; the user is the editorial reviewer.
 
 ## 2. Install location: user-global at `~/.claude/skills/`
 
-The skill is `~/.claude/skills/demo-video-from-site/`. It is reused across projects. It must not assume the cwd is any particular repo.
+The skill is `~/.claude/skills/show-n-tell/`. It is reused across projects. It must not assume the cwd is any particular repo.
 
 When running the skill, Claude creates a working directory **per demo** (e.g., `~/demo-videos/<demo-name>/`) for the storyboard, branding, generated TTS, recorded video, and final output. The skill folder itself stays clean — only scripts, templates, examples, and the SKILL.md live there.
 

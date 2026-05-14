@@ -1,4 +1,4 @@
-"""Shared helpers for demo-video-from-site scripts.
+"""Shared helpers for show-n-tell scripts.
 
 Kept small and dependency-light. Loaded by other scripts via:
     sys.path.insert(0, str(Path(__file__).parent))

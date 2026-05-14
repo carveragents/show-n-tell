@@ -1,6 +1,6 @@
 # Bundled bg music library
 
-This directory ships with the `demo-video-from-site` skill. It backs the `branding.audio.bg_music_mood` config — pick a mood, the skill picks the first track listed for that mood in `library.json`.
+This directory ships with the `show-n-tell` skill. It backs the `branding.audio.bg_music_mood` config — pick a mood, the skill picks the first track listed for that mood in `library.json`.
 
 ## Current state — placeholders
 
@@ -33,7 +33,7 @@ Match the mood criteria:
 ### 2. Normalize to -16 LUFS
 
 ```bash
-cd ~/.claude/skills/demo-video-from-site/_assets/bg_music
+cd ~/.claude/skills/show-n-tell/_assets/bg_music
 uvx ffmpeg-normalize <raw-download>.mp3 \
   -o <slug>.mp3 \
   -t -16 \

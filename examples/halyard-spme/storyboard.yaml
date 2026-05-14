@@ -1,5 +1,5 @@
 # Halyard Pay / Mastercard SPME demo storyboard — 28 beats.
-# This is the canonical reference example for the demo-video-from-site skill.
+# This is the canonical reference example for the show-n-tell skill.
 # Running the skill against this example reproduces the original
 # `demo-video.mp4` (~5:09, badge + waveform; with Phase B features on,
 # ~5:18 including intro + outro slides and burned captions).

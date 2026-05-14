@@ -1,5 +1,5 @@
 [project]
-name = "demo-video-from-site"
+name = "show-n-tell"
 version = "0.1.0"
 description = "Claude Code skill: produce narrated, branded demo videos of any website."
 readme = "README.md"
