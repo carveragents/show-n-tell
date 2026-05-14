@@ -10,6 +10,8 @@ The output looks like a polished Loom-style product walkthrough — but faster t
 
 ## 🧰 What you'll need before starting
 
+> 💡 **Don't want to do this by hand?** Once Claude Code is running, paste the URL of this README into the chat and say *"install this skill on my machine."* Claude will read the install steps, detect your OS, run the right commands, and check in with you for anything it can't do on its own (like signing into your OpenAI account).
+
 A few one-time things on your machine. Most are platform-independent:
 
 1. **Claude Code** — https://claude.com/claude-code
@@ -40,8 +42,6 @@ uv --version
 ```
 
 If you've never run Claude Code before: install it, sign in, then open a terminal in any folder and type `claude`. That starts the conversation interface.
-
-> 💡 **Don't want to do this by hand?** Once Claude Code is running, paste the URL of this README into the chat and say *"install this skill on my machine."* Claude will read the install steps, detect your OS, run the right commands, and check in with you for anything it can't do on its own (like signing into your OpenAI account).
 
 ---
 
