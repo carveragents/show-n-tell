@@ -1,0 +1,19 @@
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Editors
+.vscode/
+.idea/
+
+# Per-demo artifacts (skill is library-only; runs live in ~/demo-videos/)
+*.mp4
+*.webm
+*.wav
+*.srt
+!_assets/bg_music/*.mp3
