@@ -1,6 +1,10 @@
-# 🎬 show-n-tell
+# 🎬 Show-N-Tell
 
-**Turn any website into a narrated, branded demo video in under 20 minutes.**
+<p align="center">
+  <img width="600" alt="Screenshot 2026-05-14 at 7 04 29 PM" src="https://github.com/user-attachments/assets/1881b371-a165-4a11-b64d-f73ffecc2d61" />
+</p>
+
+**Turn your product or website into a narrated, branded demo video in under 20 minutes.**
 
 You tell Claude which site, what story to tell, and drop in a logo. It walks the site, drafts the narration, gets you to review in plain English, records the screen with a voiceover, and ships a finished mp4 with your brand badge, captions, and optional background music.
 
