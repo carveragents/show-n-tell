@@ -10,18 +10,28 @@ The output looks like a polished Loom-style product walkthrough — but faster t
 
 ## 🧰 What you'll need before starting
 
-You need a few one-time things on your machine. Most are platform-specific — pick the row that matches your OS.
+A few one-time things on your machine. Most are platform-independent:
 
-| | What | macOS | Linux | Windows |
-|---|---|---|---|---|
-| 1. | **Claude Code** | https://claude.com/claude-code | same | same |
-| 2. | **`ffmpeg`** (with `libass` for burned captions) | `brew install ffmpeg-full` (Homebrew's plain `ffmpeg` works for everything *except* burned-in captions; install `ffmpeg-full` if you want captions baked into the video, otherwise stick with the lean `ffmpeg`) | `sudo apt install ffmpeg` (Debian/Ubuntu); `sudo dnf install ffmpeg-free` (Fedora); `sudo pacman -S ffmpeg` (Arch). Most distros ship `ffmpeg` with `libass` already linked. | Download a static build from https://www.gyan.dev/ffmpeg/builds/ (pick "release essentials"). Unzip, add the `bin/` folder to `PATH`. Or via `winget install Gyan.FFmpeg` / `choco install ffmpeg`. |
-| 3. | **`uv`** (Python runner — pins a contained virtualenv, never touches your system Python) | `brew install uv` | `curl -LsSf https://astral.sh/uv/install.sh \| sh` | `powershell -c "irm https://astral.sh/uv/install.ps1 \| iex"` (or `winget install astral-sh.uv`) |
-| 4. | **An OpenAI API key** | https://platform.openai.com/api-keys — for the AI narration voice; ~$0.10 per demo | same | same |
-| 5. | **Google Chrome** (only if your site uses Google / Microsoft / SSO login) | https://www.google.com/chrome | same | same |
-| 6. | **Your site's logo** | A `.png` file on your computer (or a public URL Claude can download) | same | same |
+1. **Claude Code** — https://claude.com/claude-code
+2. **An OpenAI API key** — https://platform.openai.com/api-keys (for the AI narration voice; ~$0.10 per demo)
+3. **Google Chrome** — https://www.google.com/chrome (only needed if your site uses Google / Microsoft / SSO login)
+4. **Your site's logo** — a `.png` on your computer, or a public URL Claude can download
 
-Confirm the prereqs are visible to your shell:
+The remaining two — `ffmpeg` and `uv` — install differently depending on your OS.
+
+### Install `ffmpeg` (with `libass` for burned-in captions)
+
+- **macOS:** `brew install ffmpeg-full` — Homebrew's plain `ffmpeg` works for everything *except* burned-in captions; `ffmpeg-full` bakes those in. If you don't care about burned captions, plain `ffmpeg` is fine.
+- **Linux:** `sudo apt install ffmpeg` (Debian/Ubuntu) · `sudo dnf install ffmpeg-free` (Fedora) · `sudo pacman -S ffmpeg` (Arch). Most distros ship `ffmpeg` with `libass` already linked.
+- **Windows:** `winget install Gyan.FFmpeg` (or `choco install ffmpeg`). Or download a static build from https://www.gyan.dev/ffmpeg/builds/ (pick "release essentials"), unzip it, and add the `bin/` folder to `PATH`.
+
+### Install `uv` (Python runner — pins a contained virtualenv, never touches your system Python)
+
+- **macOS:** `brew install uv`
+- **Linux:** `curl -LsSf https://astral.sh/uv/install.sh | sh`
+- **Windows:** `winget install astral-sh.uv` (or `powershell -c "irm https://astral.sh/uv/install.ps1 | iex"`)
+
+Confirm everything is visible to your shell:
 
 ```bash
 ffmpeg -version
