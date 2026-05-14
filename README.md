@@ -2,13 +2,24 @@
 
 **Turn any website into a narrated, branded demo video in under 20 minutes.**
 
-You tell Claude Code which site, what story to tell, and drop in a logo. It walks the site, drafts the narration, gets you to review in plain English, records the screen with a voiceover, and ships a finished mp4 with your brand badge, captions, and optional background music.
+You tell Claude which site, what story to tell, and drop in a logo. It walks the site, drafts the narration, gets you to review in plain English, records the screen with a voiceover, and ships a finished mp4 with your brand badge, captions, and optional background music.
 
 The output looks like a polished Loom-style product walkthrough — but faster to make, easier to update, and you can change the narration tone or branding without re-recording.
 
 ---
 
-## 🧰 What you'll need before starting
+## 💻 Where you can run this
+
+- **Claude Code** (CLI) — install once on your own machine, runs locally. The setup steps below cover this path.
+- **Claude Cowork** — works in a Cowork workspace too. Cowork provides the runtime (ffmpeg, `uv`, browser) and the working directory; skip the local-setup section and just ask Claude in your Cowork session for a demo video.
+
+Same skill, same output in either environment — the differences are who runs the long-running scripts and where the files land.
+
+---
+
+## 🧰 Setup (for Claude Code CLI)
+
+*Cowork users: skip this section — your workspace is already provisioned.*
 
 > 💡 **Don't want to do this by hand?** Once Claude Code is running, paste the URL of this README into the chat and say *"install this skill on my machine."* Claude will read the install steps, detect your OS, run the right commands, and check in with you for anything it can't do on its own (like signing into your OpenAI account).
 
@@ -45,7 +56,9 @@ If you've never run Claude Code before: install it, sign in, then open a termina
 
 ---
 
-## 📦 Installing the skill
+## 📦 Installing the skill (Claude Code)
+
+*Cowork users: your workspace provisions the skill — no install step on your machine.*
 
 Claude Code looks for user-global skills in `~/.claude/skills/` on macOS/Linux and `%USERPROFILE%\.claude\skills\` on Windows. Drop this repo there:
 
@@ -79,7 +92,7 @@ If you'd rather skip the project venv and run each script in its own ephemeral e
 
 ## 🚀 Your first demo
 
-Open Claude Code in any folder (the demo will save outside your project — doesn't matter where you start). Type:
+Open Claude — either Claude Code in your terminal, or your Claude Cowork workspace (the demo saves outside any project — doesn't matter where you start). Type:
 
 > Let's create a demo video for the site I'm working on.
 
@@ -150,8 +163,8 @@ You never have to "start over." Tell Claude what to change in plain English and 
 ## 💵 What it costs
 
 - **OpenAI TTS:** ~$0.10 per 3–5 minute demo. Pay-as-you-go on your own OpenAI account.
-- **Everything else:** free. Recording, encoding, captioning, brand overlay, music mixing — all local on your machine.
-- **No data leaves your computer** except narration text → OpenAI's TTS endpoint, and the browser visits the site you're demoing.
+- **Everything else:** free. Recording, encoding, captioning, brand overlay, music mixing — local in Claude Code, in-sandbox in Claude Cowork.
+- **Data flow:** in **Claude Code**, nothing leaves your computer except narration text → OpenAI's TTS endpoint and the browser visiting the site you're demoing. In **Claude Cowork**, the same pipeline runs in your Cowork sandbox — see Cowork's data-handling policy for that path.
 
 ---
 
@@ -195,7 +208,7 @@ You can hack on individual scripts without breaking anything else — the pipeli
 
 ## 💻 Quick command reference
 
-If you're driving the pipeline by hand instead of through Claude Code, every stage is one command. From the working directory of a demo:
+If you're driving the pipeline by hand instead of through Claude, every stage is one command. From the working directory of a demo:
 
 ```bash
 uv run scripts/make_overlay.py     --working-dir .
@@ -209,7 +222,7 @@ uv run scripts/make_captions.py    --working-dir .   # if captions are on
 uv run scripts/finalize_video.py   --working-dir . --input _intermediate/branded.mp4 --output my-demo.mp4
 ```
 
-But for most users: just talk to Claude Code. It runs these for you in the right order.
+But for most users: just talk to Claude (Code or Cowork). It runs these for you in the right order.
 
 ---
 
@@ -228,7 +241,7 @@ uv run playwright install chromium
 uv run pytest                # unit + integration tests
 ```
 
-Because the skill folder *is* the install target, edits you make here are picked up by Claude Code immediately — no copy step, no "deploy."
+Because the skill folder *is* the install target for Claude Code, edits you make here are picked up immediately — no copy step, no "deploy." (Cowork has its own skill ingestion; check your workspace docs for the update path.)
 
 Agent-facing notes for working on this repo (read order, design decisions, hard rules) live in `CLAUDE.md`.
 
