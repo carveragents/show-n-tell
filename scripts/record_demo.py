@@ -132,7 +132,7 @@ def execute_action(page, action: dict, actx: ActionContext):
         raise ValueError(f"Unknown action type: {t!r}")
 
     if t == "goto":
-        page.goto(action["url"], wait_until="networkidle")
+        page.goto(action["url"], wait_until="load")
         page_load_settle(page, actx.recording_css)
     elif t == "goto_pdf":
         pdf_id = action["pdf_id"]
@@ -144,10 +144,10 @@ def execute_action(page, action: dict, actx: ActionContext):
                    / f"{pdf_id}_p{entry['page']}.html")
         if not wrapper.exists():
             raise FileNotFoundError(f"PDF wrapper missing: {wrapper}")
-        page.goto(f"file://{wrapper.resolve()}", wait_until="networkidle")
+        page.goto(f"file://{wrapper.resolve()}", wait_until="load")
         page_load_settle(page, actx.recording_css)
     elif t == "goto_and_scroll":
-        page.goto(action["url"], wait_until="networkidle")
+        page.goto(action["url"], wait_until="load")
         page_load_settle(page, actx.recording_css)
         smooth_scroll_to_element(page, action["selector"])
     elif t == "scroll_y":
