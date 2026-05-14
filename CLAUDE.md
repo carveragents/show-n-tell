@@ -6,6 +6,46 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A planning workspace for a Claude Code skill named **demo-video-from-site** that produces narrated, branded demo videos of any website. The skill itself lives at `~/.claude/skills/demo-video-from-site/` and is **user-global** (works across every project).
 
+## Git topology — read before pushing
+
+This skill is one repo nested inside another via a submodule. Knowing where you are matters.
+
+- **Standalone repo:** `github.com/carveragents/demo-video-from-site` — canonical home of the skill's code and history. All skill commits land here.
+- **Aggregator repo:** `github.com/carveragents/carver-tools` — references this skill as a submodule at `skills/demo-video-from-site`. Pinned to a specific SHA.
+- **Local working copy:** `~/work/scribble/code/repos/carver/carver-tools/skills/demo-video-from-site/` — the submodule checkout. Edit here.
+- **Symlink for the loader:** `~/.claude/skills/demo-video-from-site` → the working copy above. Don't edit `~/.claude/...` directly; it dereferences to the same files but stay consistent.
+
+### Making a skill change
+
+1. From the symlink path or the submodule path (identical), make your changes.
+2. Test (`uv run` scripts, `pytest tests/`, end-to-end demo if relevant) before committing.
+3. Commit and push from inside the submodule:
+   ```bash
+   cd ~/.claude/skills/demo-video-from-site
+   git status                    # branch shows `master`, remote `origin/master`
+   git commit -am "feat: ..."
+   git push                      # → carveragents/demo-video-from-site
+   ```
+4. **The aggregator is now stale.** Its `.gitmodules` SHA still points at the previous commit. To advance the pin (only needed if a `carver-tools` consumer should pick up the new code):
+   ```bash
+   cd ~/work/scribble/code/repos/carver/carver-tools
+   git add skills/demo-video-from-site
+   git commit -m "bump: demo-video-from-site to $(git -C skills/demo-video-from-site rev-parse --short HEAD)"
+   git push                      # → carveragents/carver-tools
+   ```
+5. If you only push to the skill repo and not the aggregator, that's fine — small fixes don't all need an aggregator bump. Batch a few skill commits, then bump.
+
+### When pulling
+
+- **From the skill repo:** `git pull` inside the symlink/submodule path. Normal Git.
+- **From the aggregator:** if you `git pull` carver-tools and it advances the submodule pin, also run `git submodule update` inside `carver-tools/` to actually move the working tree to the new SHA. Easy to forget; the symptom is "I pulled but my files didn't change."
+
+### Don't do this
+
+- Don't `git clone` the standalone repo into a fresh directory and edit there — the symlink will still point at the submodule checkout, and your edits will be invisible to Claude Code.
+- Don't commit aggregator-level changes (e.g., README, new submodules) inside the skill submodule. They live in `carver-tools/`, not in `demo-video-from-site/`.
+- Don't push the symlink itself. The symlink is local; it isn't tracked by either repo.
+
 ## Status — read before doing anything
 
 - **Phase A and Phase B are shipped (2026-05-12).** `SKILL.md`, `scripts/`, `helpers/`, `recipes/`, and `examples/halyard-spme/` are all populated and reproduce the Halyard reference. Phase C is deferred — see `docs/PHASE-B-TASKS.md` for the retrospective.

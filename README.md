@@ -172,3 +172,41 @@ uv run scripts/finalize_video.py   --working-dir . --input _intermediate/branded
 ```
 
 But for most users: just talk to Claude Code. It runs these for you in the right order.
+
+---
+
+## 🌿 Contributing & repo layout (developers only)
+
+This skill is checked into **`carveragents/demo-video-from-site`** and is also referenced as a submodule by the umbrella **`carveragents/carver-tools`** repo at `skills/demo-video-from-site`.
+
+The recommended local layout:
+
+```
+~/work/scribble/code/repos/carver/carver-tools/         # umbrella, clone of carver-tools
+  └── skills/
+      └── demo-video-from-site/                         # submodule = this repo
+                                                        # ← edit here
+
+~/.claude/skills/demo-video-from-site → (symlink) ──→ the path above
+```
+
+The symlink is what Claude Code's skill loader sees. Working through it dereferences to the submodule checkout, so commits go to the right repo automatically.
+
+**To make a change:**
+1. Edit files (from either the `~/.claude/...` symlink or the submodule path — same files).
+2. Test locally.
+3. Commit and push from inside the skill:
+   ```bash
+   cd ~/.claude/skills/demo-video-from-site
+   git commit -am "feat: ..."
+   git push                  # → carveragents/demo-video-from-site
+   ```
+4. If `carver-tools` consumers should pick up the change, bump the pin:
+   ```bash
+   cd ~/work/scribble/code/repos/carver/carver-tools
+   git add skills/demo-video-from-site
+   git commit -m "bump: demo-video-from-site to <short-sha>"
+   git push                  # → carveragents/carver-tools
+   ```
+
+Full agent-facing notes (including pull/update behavior and common pitfalls) are in `CLAUDE.md` under **Git topology — read before pushing**.
