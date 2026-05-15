@@ -1,8 +1,7 @@
 # 🎬 Show-N-Tell
 
-<p align="center">
-  <img width="800" alt="snt" src="https://github.com/user-attachments/assets/2a819560-fd7e-458f-b990-fe657d6e654d" />
-</p>
+**WATCH THE DEMO VIDEO** 👇
+[![Demo Video](https://github.com/user-attachments/assets/2a819560-fd7e-458f-b990-fe657d6e654d)](https://youtu.be/W3pnDlbLdI0)
 
 **Turn your product or website into a narrated, branded demo video in under 20 minutes.**
 
